@@ -37,36 +37,81 @@ A simple web app for creating and managing cards from URLs. Each card displays t
 - Google account
 
 ### Setup
+
 1. **Clone and install**:
    ```bash
    git clone <repo-url>
    cd cards
-   npm install
+   cd functions && npm install && cd ..
    ```
 
-2. **Firebase setup**:
+2. **Create Firebase project**:
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project (or use existing)
+   - Choose a project location (e.g., africa-south1, us-central1)
+
+3. **Enable required APIs** (IMPORTANT):
+
+   This is a common gotcha! Before deploying Cloud Functions, you must enable these APIs:
+
+   - Go to [Google Cloud Console](https://console.cloud.google.com)
+   - Select your Firebase project
+   - Navigate to "APIs & Services" > "Library"
+   - Enable the following APIs:
+     - **Cloud Build API** (required for Functions deployment)
+     - **Cloud Functions API** (required for Functions)
+
+   Alternatively, use the gcloud CLI:
+   ```bash
+   gcloud services enable cloudbuild.googleapis.com --project=your-project-id
+   gcloud services enable cloudfunctions.googleapis.com --project=your-project-id
+   ```
+
+4. **Firebase CLI setup**:
    ```bash
    firebase login
    firebase init
    # Select: Hosting, Functions, Firestore
-   # Use existing project or create new one
+   # Choose your project
+   # Accept defaults or customize as needed
    ```
 
-3. **Configure environment**:
-   ```bash
-   cp .env.example .env
-   # Add your Firebase config keys
-   ```
+5. **Configure Firestore**:
+   - In Firebase Console, go to Firestore Database
+   - Create database in the same region as your project
+   - Start in production mode (rules are already in firestore.rules)
 
-4. **Local development**:
+6. **Local development**:
    ```bash
    firebase emulators:start
    # App available at http://localhost:5000
+   # Functions at http://localhost:5001
+   # Firestore UI at http://localhost:4000
    ```
 
-5. **Deploy**:
+7. **Deploy**:
    ```bash
    firebase deploy
+   ```
+
+### GitHub Actions Deployment (Optional)
+
+To enable automatic deployments on push to main:
+
+1. **Generate service account**:
+   ```bash
+   firebase init hosting:github
+   # Follow prompts to set up GitHub Actions
+   ```
+
+2. **Verify secrets**:
+   - Check that `FIREBASE_SERVICE_ACCOUNT_URL_CARDS` is in your GitHub repo secrets
+   - This was created automatically by the Firebase CLI
+
+3. **Push to deploy**:
+   ```bash
+   git push origin main
+   # Triggers automatic deployment
    ```
 
 ## Project Structure
@@ -108,6 +153,25 @@ A simple web app for creating and managing cards from URLs. Each card displays t
 - Firestore rules enforce user data isolation
 - Functions validate inputs and handle CORS safely
 - No API keys exposed to frontend
+
+## Troubleshooting
+
+### Cloud Functions deployment fails with "Cloud Build API" error
+
+**Problem**: Error message says "Cloud Functions deployment requires the Cloud Build API to be enabled"
+
+**Solution**:
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Select your Firebase project
+3. Navigate to "APIs & Services" > "Library"
+4. Search for and enable "Cloud Build API"
+5. Also enable "Cloud Functions API" if not already enabled
+
+Alternatively, use the gcloud CLI:
+```bash
+gcloud services enable cloudbuild.googleapis.com --project=your-project-id
+gcloud services enable cloudfunctions.googleapis.com --project=your-project-id
+```
 
 ## Contributing
 
