@@ -19,9 +19,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
+            // Connect to emulators if running locally
+            if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+                console.log('Running locally - connecting to emulators');
+                firebase.firestore().useEmulator('localhost', 8080);
+                firebase.functions().useEmulator('localhost', 5001);
+            }
+
             db = firebase.firestore();
             cardsCollection = db.collection('cards');
-            
+
             loadCards();
             
             addCardBtn.addEventListener('click', handleAddCard);
@@ -74,7 +81,9 @@ document.addEventListener('DOMContentLoaded', function() {
     async function extractMetadata(url) {
         try {
             console.log('Calling Firebase Function to extract metadata for:', url);
-            const functions = firebase.app().functions('africa-south1');
+            // Use default functions instance for emulator, region-specific for production
+            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+            const functions = isLocal ? firebase.functions() : firebase.app().functions('africa-south1');
             const extractMetadataFunc = functions.httpsCallable('extractMetadata');
             const result = await extractMetadataFunc({ url });
             
