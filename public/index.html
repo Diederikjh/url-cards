@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Cards</title>
+    
+    <!-- Firebase SDK -->
+    <script src="/__/firebase/12.7.0/firebase-app-compat.js"></script>
+    <script src="/__/firebase/12.7.0/firebase-firestore-compat.js"></script>
+    <script src="/__/firebase/12.7.0/firebase-functions-compat.js"></script>
+    <script src="/__/firebase/init.js?useEmulator=true"></script>
+    
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>URL Cards</h1>
+            <div class="add-card-section">
+                <input type="url" id="urlInput" placeholder="Enter URL..." />
+                <button id="addCardBtn">Add Card</button>
+            </div>
+        </header>
+        <main id="cardsContainer" class="cards-container">
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
