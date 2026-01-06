@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function createCardElement(id, card) {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card';
+        cardDiv.setAttribute('data-card-id', id);
         cardDiv.innerHTML = `
             <div class="card-url">${card.url}</div>
             <div class="card-title" data-field="title">${card.title}</div>
@@ -135,11 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.editCard = function(cardId) {
-        const card = document.querySelector(`[data-card-id="${cardId}"]`) || 
-                    Array.from(document.querySelectorAll('.card')).find(card => 
-                        card.querySelector('.edit-btn')?.onclick.toString().includes(cardId)
-                    );
-        
+        const card = document.querySelector(`[data-card-id="${cardId}"]`);
         if (!card) return;
 
         const titleEl = card.querySelector('[data-field="title"]');
@@ -156,10 +153,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.saveCard = async function(cardId) {
-        const card = Array.from(document.querySelectorAll('.card')).find(card => 
-            card.querySelector('.save-btn')?.onclick.toString().includes(cardId)
-        );
-        
+        const card = document.querySelector(`[data-card-id="${cardId}"]`);
         if (!card) return;
 
         const titleEl = card.querySelector('[data-field="title"]');
