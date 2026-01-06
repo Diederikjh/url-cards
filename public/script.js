@@ -1,14 +1,20 @@
 let db;
 let cardsCollection;
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', function() {
     const urlInput = document.getElementById('urlInput');
     const addCardBtn = document.getElementById('addCardBtn');
     const cardsContainer = document.getElementById('cardsContainer');
+    const loginBtn = document.getElementById('loginBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userInfo = document.getElementById('userInfo');
+    const userName = document.getElementById('userName');
+    const addCardSection = document.getElementById('addCardSection');
 
     // Wait for Firebase to initialize
     document.addEventListener('firebaseLoaded', initializeApp);
-    
+
     // Fallback: try to initialize after a short delay
     setTimeout(initializeApp, 1000);
 
@@ -22,25 +28,76 @@ document.addEventListener('DOMContentLoaded', function() {
             // Connect to emulators if running locally
             if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
                 console.log('Running locally - connecting to emulators');
+                firebase.auth().useEmulator('http://localhost:9099');
                 firebase.firestore().useEmulator('localhost', 8080);
-                firebase.functions().useEmulator('localhost', 5001);
+                firebase.app().functions('africa-south1').useEmulator('localhost', 5001);
             }
 
             db = firebase.firestore();
             cardsCollection = db.collection('cards');
 
-            loadCards();
-            
+            // Set up authentication state listener
+            firebase.auth().onAuthStateChanged((user) => {
+                currentUser = user;
+                updateUIForAuth(user);
+
+                if (user) {
+                    console.log('User signed in:', user.email);
+                    loadCards();
+                } else {
+                    console.log('User signed out');
+                    cardsContainer.innerHTML = '';
+                }
+            });
+
+            // Set up login/logout handlers
+            loginBtn.addEventListener('click', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+
             addCardBtn.addEventListener('click', handleAddCard);
             urlInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     handleAddCard();
                 }
             });
-            
+
             console.log('Firebase initialized successfully');
         } catch (error) {
             console.error('Firebase initialization error:', error);
+        }
+    }
+
+    function updateUIForAuth(user) {
+        if (user) {
+            // User is signed in
+            loginBtn.style.display = 'none';
+            userInfo.style.display = 'flex';
+            userName.textContent = user.displayName || user.email;
+            addCardSection.style.display = 'flex';
+        } else {
+            // User is signed out
+            loginBtn.style.display = 'block';
+            userInfo.style.display = 'none';
+            addCardSection.style.display = 'none';
+        }
+    }
+
+    async function handleLogin() {
+        try {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            await firebase.auth().signInWithPopup(provider);
+        } catch (error) {
+            console.error('Login error:', error);
+            alert('Failed to sign in. Please try again.');
+        }
+    }
+
+    async function handleLogout() {
+        try {
+            await firebase.auth().signOut();
+        } catch (error) {
+            console.error('Logout error:', error);
+            alert('Failed to sign out. Please try again.');
         }
     }
 
@@ -81,9 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
     async function extractMetadata(url) {
         try {
             console.log('Calling Firebase Function to extract metadata for:', url);
-            // Use default functions instance for emulator, region-specific for production
-            const isLocal = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-            const functions = isLocal ? firebase.functions() : firebase.app().functions('africa-south1');
+            // Always use africa-south1 region (works for both emulator and production)
+            const functions = firebase.app().functions('africa-south1');
             const extractMetadataFunc = functions.httpsCallable('extractMetadata');
             const result = await extractMetadataFunc({ url });
             
@@ -103,11 +159,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function addCard(url, title, description, imageUrl) {
+        if (!currentUser) {
+            console.error('No user signed in');
+            return;
+        }
+
         const card = {
             url: url,
             title: title,
             description: description,
             imageUrl: imageUrl,
+            userId: currentUser.uid,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -115,14 +177,22 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function loadCards() {
-        cardsCollection.orderBy('createdAt', 'desc').onSnapshot((snapshot) => {
-            cardsContainer.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const card = doc.data();
-                const cardElement = createCardElement(doc.id, card);
-                cardsContainer.appendChild(cardElement);
+        if (!currentUser) {
+            console.log('No user signed in, not loading cards');
+            return;
+        }
+
+        cardsCollection
+            .where('userId', '==', currentUser.uid)
+            .orderBy('createdAt', 'desc')
+            .onSnapshot((snapshot) => {
+                cardsContainer.innerHTML = '';
+                snapshot.forEach((doc) => {
+                    const card = doc.data();
+                    const cardElement = createCardElement(doc.id, card);
+                    cardsContainer.appendChild(cardElement);
+                });
             });
-        });
     }
 
     function createCardElement(id, card) {

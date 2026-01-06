@@ -7,6 +7,7 @@
     
     <!-- Firebase SDK -->
     <script src="/__/firebase/12.7.0/firebase-app-compat.js"></script>
+    <script src="/__/firebase/12.7.0/firebase-auth-compat.js"></script>
     <script src="/__/firebase/12.7.0/firebase-firestore-compat.js"></script>
     <script src="/__/firebase/12.7.0/firebase-functions-compat.js"></script>
     <script src="/__/firebase/init.js"></script>
@@ -16,8 +17,17 @@
 <body>
     <div class="container">
         <header>
-            <h1>URL Cards</h1>
-            <div class="add-card-section">
+            <div class="header-top">
+                <h1>URL Cards</h1>
+                <div id="authContainer" class="auth-container">
+                    <div id="userInfo" class="user-info" style="display: none;">
+                        <span id="userName"></span>
+                        <button id="logoutBtn" class="logout-btn">Logout</button>
+                    </div>
+                    <button id="loginBtn" class="login-btn" style="display: none;">Sign in with Google</button>
+                </div>
+            </div>
+            <div id="addCardSection" class="add-card-section" style="display: none;">
                 <input type="url" id="urlInput" placeholder="Enter URL..." />
                 <button id="addCardBtn">Add Card</button>
             </div>
