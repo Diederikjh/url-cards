@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         try {
             const metadata = await extractMetadata(url);
-            await addCard(url, metadata.title, metadata.description);
+            await addCard(url, metadata.title, metadata.description, metadata.imageUrl);
             urlInput.value = '';
         } catch (error) {
             console.error('Error adding card:', error);
@@ -80,7 +80,8 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Metadata extraction result:', result.data);
             return {
                 title: result.data.title,
-                description: result.data.description
+                description: result.data.description,
+                imageUrl: result.data.imageUrl
             };
         } catch (error) {
             console.warn('Firebase Function failed, using fallback:', error);
@@ -91,11 +92,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function addCard(url, title, description) {
+    async function addCard(url, title, description, imageUrl) {
         const card = {
             url: url,
             title: title,
             description: description,
+            imageUrl: imageUrl,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
@@ -117,13 +119,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const cardDiv = document.createElement('div');
         cardDiv.className = 'card';
         cardDiv.setAttribute('data-card-id', id);
+        
+        const imageHtml = card.imageUrl ? 
+            `<div class="card-image"><img src="${card.imageUrl}" alt="${card.title}" onerror="this.parentElement.style.display='none'"></div>` : 
+            '';
+        
         cardDiv.innerHTML = `
-            <div class="card-url">${card.url}</div>
-            <div class="card-title" data-field="title">${card.title}</div>
-            <div class="card-description" data-field="description">${card.description}</div>
-            <div class="card-actions">
-                <button class="edit-btn" onclick="editCard('${id}')">Edit</button>
-                <button class="delete-btn" onclick="deleteCard('${id}')">Delete</button>
+            ${imageHtml}
+            <div class="card-content">
+                <div class="card-url">${card.url}</div>
+                <div class="card-title" data-field="title">${card.title}</div>
+                <div class="card-description" data-field="description">${card.description}</div>
+                <div class="card-actions">
+                    <button class="edit-btn" onclick="editCard('${id}')">Edit</button>
+                    <button class="delete-btn" onclick="deleteCard('${id}')">Delete</button>
+                </div>
             </div>
         `;
         return cardDiv;
