@@ -84,6 +84,7 @@ A simple web app for creating and managing cards from URLs. Each card displays t
 5. **Configure Firestore**:
    - In Firebase Console, go to Firestore Database
    - Create database in the same region as your project
+   - Default id is fine (leave as is)
    - Start in production mode (rules are already in firestore.rules)
 
 6. **Set up Functions cleanup policy**:
