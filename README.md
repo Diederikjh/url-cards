@@ -49,23 +49,24 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    - Go to [Firebase Console](https://console.firebase.google.com/)
    - Create a new project (or use existing)
    - Choose a project location (e.g., africa-south1, us-central1)
+   - Note your project ID (you'll need it in the next step)
 
 3. **Enable required APIs** (IMPORTANT):
 
-   This is a common gotcha! Before deploying Cloud Functions, you must enable these APIs:
-
-   - Go to [Google Cloud Console](https://console.cloud.google.com)
-   - Select your Firebase project
-   - Navigate to "APIs & Services" > "Library"
-   - Enable the following APIs:
-     - **Cloud Build API** (required for Functions deployment)
-     - **Cloud Functions API** (required for Functions)
-
-   Alternatively, use the gcloud CLI:
+   Run the automated setup script to enable all required APIs:
    ```bash
-   gcloud services enable cloudbuild.googleapis.com --project=your-project-id
-   gcloud services enable cloudfunctions.googleapis.com --project=your-project-id
+   ./setup-apis.sh your-project-id
    ```
+
+   This enables:
+   - **Cloud Build API** (required for Functions deployment)
+   - **Cloud Functions API** (required for Functions)
+   - **Firebase Extensions API** (required for deployment)
+   - **Cloud Run API** (required for Functions v2)
+
+   **Manual alternative**: If you prefer, you can enable these APIs manually:
+   - Go to [Google Cloud Console](https://console.cloud.google.com) > "APIs & Services" > "Library"
+   - Search for and enable each API listed above
 
 4. **Firebase CLI setup**:
    ```bash
@@ -104,11 +105,25 @@ To enable automatic deployments on push to main:
    # Follow prompts to set up GitHub Actions
    ```
 
-2. **Verify secrets**:
+2. **Configure service account permissions** (IMPORTANT):
+
+   The auto-generated service account needs additional permissions to deploy Cloud Functions. Without these, deployment will fail with "Missing permissions" error.
+
+   - Go to [Google Cloud Console IAM](https://console.cloud.google.com/iam-admin/iam)
+   - Select your project
+   - Find the GitHub Actions service account (named like `github-action-XXXXX@your-project.iam.gserviceaccount.com`)
+   - Edit and add these roles:
+     - **Service Account User**
+     - **Cloud Functions Admin**
+     - **Firebase Admin**
+
+   See the [Troubleshooting section](#github-actions-deployment-fails-with-missing-permissions-error) for detailed instructions.
+
+3. **Verify secrets**:
    - Check that `FIREBASE_SERVICE_ACCOUNT_URL_CARDS` is in your GitHub repo secrets
    - This was created automatically by the Firebase CLI
 
-3. **Push to deploy**:
+4. **Push to deploy**:
    ```bash
    git push origin main
    # Triggers automatic deployment
@@ -127,6 +142,7 @@ To enable automatic deployments on push to main:
 ├── firestore.rules    # Database security rules
 ├── firebase.json      # Firebase configuration
 ├── .firebaserc       # Project settings
+├── setup-apis.sh     # API setup automation script
 └── README.md         # This file
 ```
 
@@ -160,18 +176,20 @@ To enable automatic deployments on push to main:
 
 **Problem**: Error message says "Cloud Functions deployment requires the Cloud Build API to be enabled"
 
-**Solution**:
+**Solution**: Run the setup script to enable all required APIs:
+```bash
+./setup-apis.sh your-project-id
+```
+
+**Manual alternative**:
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
 2. Select your Firebase project
 3. Navigate to "APIs & Services" > "Library"
-4. Search for and enable "Cloud Build API"
-5. Also enable "Cloud Functions API" if not already enabled
-
-Alternatively, use the gcloud CLI:
-```bash
-gcloud services enable cloudbuild.googleapis.com --project=your-project-id
-gcloud services enable cloudfunctions.googleapis.com --project=your-project-id
-```
+4. Search for and enable:
+   - Cloud Build API
+   - Cloud Functions API
+   - Firebase Extensions API
+   - Cloud Run API
 
 ### GitHub Actions deployment fails with "Missing permissions" error
 
