@@ -173,6 +173,34 @@ gcloud services enable cloudbuild.googleapis.com --project=your-project-id
 gcloud services enable cloudfunctions.googleapis.com --project=your-project-id
 ```
 
+### GitHub Actions deployment fails with "Missing permissions" error
+
+**Problem**: Error message says "Missing permissions required for functions deploy. You must have permission iam.serviceAccounts.ActAs"
+
+**Solution**: The service account used by GitHub Actions needs additional permissions.
+
+1. Go to [Google Cloud Console IAM](https://console.cloud.google.com/iam-admin/iam)
+2. Select your project
+3. Find the service account (usually named like `github-action-XXXXX@your-project.iam.gserviceaccount.com`)
+4. Click the pencil icon to edit
+5. Add these roles:
+   - **Service Account User** (grants iam.serviceAccounts.ActAs)
+   - **Cloud Functions Admin** (or Cloud Functions Developer)
+   - **Firebase Admin**
+6. Save changes
+
+Alternatively, use the gcloud CLI:
+```bash
+# Replace SERVICE_ACCOUNT with your actual service account email
+gcloud projects add-iam-policy-binding your-project-id \
+  --member="serviceAccount:SERVICE_ACCOUNT" \
+  --role="roles/iam.serviceAccountUser"
+
+gcloud projects add-iam-policy-binding your-project-id \
+  --member="serviceAccount:SERVICE_ACCOUNT" \
+  --role="roles/cloudfunctions.admin"
+```
+
 ## Contributing
 
 1. Fork repository
