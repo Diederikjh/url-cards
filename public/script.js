@@ -74,7 +74,8 @@ document.addEventListener('DOMContentLoaded', function() {
     async function extractMetadata(url) {
         try {
             console.log('Calling Firebase Function to extract metadata for:', url);
-            const extractMetadataFunc = firebase.functions().httpsCallable('extractMetadata');
+            const functions = firebase.app().functions('africa-south1');
+            const extractMetadataFunc = functions.httpsCallable('extractMetadata');
             const result = await extractMetadataFunc({ url });
             
             console.log('Metadata extraction result:', result.data);
