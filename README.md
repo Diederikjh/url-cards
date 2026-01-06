@@ -63,6 +63,7 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    - **Cloud Functions API** (required for Functions)
    - **Firebase Extensions API** (required for deployment)
    - **Cloud Run API** (required for Functions v2)
+   - **Eventarc API** (required for event-driven functions)
 
    **Manual alternative**: If you prefer, you can enable these APIs manually:
    - Go to [Google Cloud Console](https://console.cloud.google.com) > "APIs & Services" > "Library"
@@ -190,6 +191,7 @@ To enable automatic deployments on push to main:
    - Cloud Functions API
    - Firebase Extensions API
    - Cloud Run API
+   - Eventarc API
 
 ### GitHub Actions deployment fails with "Missing permissions" error
 
