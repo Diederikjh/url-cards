@@ -49,9 +49,19 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    - Go to [Firebase Console](https://console.firebase.google.com/)
    - Create a new project (or use existing)
    - Choose a project location (e.g., africa-south1, us-central1)
-   - Note your project ID (you'll need it in the next step)
+   - Note your project ID and region (you'll need them in the next steps)
 
-3. **Enable required APIs** (IMPORTANT):
+3. **Configure region** (if not using africa-south1):
+
+   Update the region in three files to match your Firebase project region:
+
+   - `public/config.js` - Change `REGION` value
+   - `functions/config.js` - Change `REGION` value
+   - `firebase.json` - Change `location` under `firestore`
+
+   Example: If your project is in `us-central1`, change all three files to use that region.
+
+4. **Enable required APIs** (IMPORTANT):
 
    **Note**: This requires the gcloud CLI to be installed. If you don't have it, install it from [Google Cloud SDK documentation](https://cloud.google.com/sdk/docs/install).
 
@@ -72,7 +82,7 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    - Go to [Google Cloud Console](https://console.cloud.google.com) > "APIs & Services" > "Library"
    - Search for and enable each API listed above
 
-4. **Firebase CLI setup**:
+5. **Firebase CLI setup**:
    ```bash
    firebase login
    firebase init
@@ -81,13 +91,13 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    # Accept defaults or customize as needed
    ```
 
-5. **Configure Firestore**:
+6. **Configure Firestore**:
    - In Firebase Console, go to Firestore Database
    - Create database in the same region as your project
    - Default id is fine (leave as is)
    - Start in production mode (rules are already in firestore.rules)
 
-6. **Set up Functions cleanup policy**:
+7. **Set up Functions cleanup policy**:
 
    If this is your first time deploying Cloud Functions to this region, set up a cleanup policy to manage old function artifacts:
    ```bash
@@ -96,7 +106,13 @@ A simple web app for creating and managing cards from URLs. Each card displays t
 
    Replace `africa-south1` with your chosen region if different. This prevents storage costs from accumulating old function versions.
 
-7. **Local development**:
+8. **Enable Authentication**:
+   - In Firebase Console, go to Authentication → Sign-in method
+   - Enable Google provider
+   - Set project public-facing name and support email
+   - Click Save
+
+9. **Local development**:
    ```bash
    firebase emulators:start
    # App available at http://localhost:5000
@@ -104,7 +120,7 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    # Firestore UI at http://localhost:4000
    ```
 
-8. **Deploy**:
+10. **Deploy**:
    ```bash
    firebase deploy
    ```
@@ -149,9 +165,11 @@ To enable automatic deployments on push to main:
 ├── public/              # Static frontend files
 │   ├── index.html      # Main app
 │   ├── styles.css      # Styling
-│   └── script.js       # Frontend logic
+│   ├── script.js       # Frontend logic
+│   └── config.js       # Region configuration
 ├── functions/          # Backend functions
 │   ├── index.js       # URL metadata extraction
+│   ├── config.js      # Region configuration
 │   └── package.json   # Function dependencies
 ├── firestore.rules    # Database security rules
 ├── firebase.json      # Firebase configuration

@@ -2,15 +2,16 @@ const {setGlobalOptions} = require("firebase-functions");
 const {onCall} = require("firebase-functions/v2/https");
 const {JSDOM} = require("jsdom");
 const logger = require("firebase-functions/logger");
+const {REGION} = require("./config");
 
 setGlobalOptions({
   maxInstances: 10,
-  region: "africa-south1",
+  region: REGION,
 });
 
 exports.extractMetadata = onCall({
   cors: true,
-  region: "africa-south1",
+  region: REGION,
 }, async (request) => {
   const {url} = request.data;
 

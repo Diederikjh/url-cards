@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('Running locally - connecting to emulators');
                 firebase.auth().useEmulator('http://localhost:9099');
                 firebase.firestore().useEmulator('localhost', 8080);
-                firebase.app().functions('africa-south1').useEmulator('localhost', 5001);
+                firebase.app().functions(CONFIG.REGION).useEmulator('localhost', 5001);
             }
 
             db = firebase.firestore();
@@ -138,8 +138,8 @@ document.addEventListener('DOMContentLoaded', function() {
     async function extractMetadata(url) {
         try {
             console.log('Calling Firebase Function to extract metadata for:', url);
-            // Always use africa-south1 region (works for both emulator and production)
-            const functions = firebase.app().functions('africa-south1');
+            // Use configured region (works for both emulator and production)
+            const functions = firebase.app().functions(CONFIG.REGION);
             const extractMetadataFunc = functions.httpsCallable('extractMetadata');
             const result = await extractMetadataFunc({ url });
             
