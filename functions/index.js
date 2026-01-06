@@ -5,7 +5,9 @@ const logger = require("firebase-functions/logger");
 
 setGlobalOptions({ maxInstances: 10 });
 
-exports.extractMetadata = onCall(async (request) => {
+exports.extractMetadata = onCall({
+  cors: true
+}, async (request) => {
   const { url } = request.data;
   
   if (!url) {
