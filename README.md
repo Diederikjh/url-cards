@@ -53,6 +53,8 @@ A simple web app for creating and managing cards from URLs. Each card displays t
 
 3. **Enable required APIs** (IMPORTANT):
 
+   **Note**: This requires the gcloud CLI to be installed. If you don't have it, install it from [Google Cloud SDK documentation](https://cloud.google.com/sdk/docs/install).
+
    Run the automated setup script to enable all required APIs:
    ```bash
    ./setup-apis.sh your-project-id
@@ -84,7 +86,16 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    - Create database in the same region as your project
    - Start in production mode (rules are already in firestore.rules)
 
-6. **Local development**:
+6. **Set up Functions cleanup policy**:
+
+   If this is your first time deploying Cloud Functions to this region, set up a cleanup policy to manage old function artifacts:
+   ```bash
+   firebase functions:artifacts:setpolicy --location africa-south1
+   ```
+
+   Replace `africa-south1` with your chosen region if different. This prevents storage costs from accumulating old function versions.
+
+7. **Local development**:
    ```bash
    firebase emulators:start
    # App available at http://localhost:5000
@@ -92,7 +103,7 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    # Firestore UI at http://localhost:4000
    ```
 
-7. **Deploy**:
+8. **Deploy**:
    ```bash
    firebase deploy
    ```
@@ -194,6 +205,17 @@ To enable automatic deployments on push to main:
    - Cloud Run API
    - Eventarc API
    - Cloud Billing API
+
+### Functions deployment warns about cleanup policy
+
+**Problem**: Error message says "Functions successfully deployed but could not set up cleanup policy"
+
+**Solution**: Set up a cleanup policy for your region to manage old function artifacts:
+```bash
+firebase functions:artifacts:setpolicy --location africa-south1
+```
+
+Replace `africa-south1` with your region. This is typically only needed the first time you deploy functions to a region.
 
 ### GitHub Actions deployment fails with "Missing permissions" error
 
