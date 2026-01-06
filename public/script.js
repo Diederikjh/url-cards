@@ -73,23 +73,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function extractMetadata(url) {
         try {
-            const response = await fetch(url, { mode: 'cors' });
-            const html = await response.text();
+            console.log('Calling Firebase Function to extract metadata for:', url);
+            const extractMetadataFunc = firebase.functions().httpsCallable('extractMetadata');
+            const result = await extractMetadataFunc({ url });
             
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            const title = doc.querySelector('title')?.textContent?.trim() || 
-                         doc.querySelector('meta[property="og:title"]')?.content?.trim() || 
-                         'Untitled';
-            
-            const description = doc.querySelector('meta[name="description"]')?.content?.trim() || 
-                               doc.querySelector('meta[property="og:description"]')?.content?.trim() || 
-                               'No description available';
-            
-            return { title, description };
+            console.log('Metadata extraction result:', result.data);
+            return {
+                title: result.data.title,
+                description: result.data.description
+            };
         } catch (error) {
-            console.warn('Could not extract metadata, using defaults:', error);
+            console.warn('Firebase Function failed, using fallback:', error);
             return {
                 title: new URL(url).hostname,
                 description: 'Click to edit description'

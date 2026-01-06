@@ -1,32 +1,77 @@
-/**
- * Import function triggers from their respective submodules:
- *
- * const {onCall} = require("firebase-functions/v2/https");
- * const {onDocumentWritten} = require("firebase-functions/v2/firestore");
- *
- * See a full list of supported triggers at https://firebase.google.com/docs/functions
- */
-
 const {setGlobalOptions} = require("firebase-functions");
-const {onRequest} = require("firebase-functions/https");
+const {onCall} = require("firebase-functions/v2/https");
+const {JSDOM} = require("jsdom");
 const logger = require("firebase-functions/logger");
 
-// For cost control, you can set the maximum number of containers that can be
-// running at the same time. This helps mitigate the impact of unexpected
-// traffic spikes by instead downgrading performance. This limit is a
-// per-function limit. You can override the limit for each function using the
-// `maxInstances` option in the function's options, e.g.
-// `onRequest({ maxInstances: 5 }, (req, res) => { ... })`.
-// NOTE: setGlobalOptions does not apply to functions using the v1 API. V1
-// functions should each use functions.runWith({ maxInstances: 10 }) instead.
-// In the v1 API, each function can only serve one request per container, so
-// this will be the maximum concurrent request count.
 setGlobalOptions({ maxInstances: 10 });
 
-// Create and deploy your first functions
-// https://firebase.google.com/docs/functions/get-started
+exports.extractMetadata = onCall(async (request) => {
+  const { url } = request.data;
+  
+  if (!url) {
+    throw new Error("URL is required");
+  }
 
-// exports.helloWorld = onRequest((request, response) => {
-//   logger.info("Hello logs!", {structuredData: true});
-//   response.send("Hello from Firebase!");
-// });
+  try {
+    // Validate URL
+    new URL(url);
+  } catch (error) {
+    throw new Error("Invalid URL provided");
+  }
+
+  try {
+    logger.info(`Extracting metadata for URL: ${url}`);
+    
+    // Fetch the webpage
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; URL-Cards-Bot/1.0)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+      },
+      timeout: 10000 // 10 second timeout
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const html = await response.text();
+    const dom = new JSDOM(html);
+    const document = dom.window.document;
+
+    // Extract title
+    let title = document.querySelector('meta[property="og:title"]')?.content?.trim() ||
+                document.querySelector('meta[name="twitter:title"]')?.content?.trim() ||
+                document.querySelector('title')?.textContent?.trim() ||
+                new URL(url).hostname;
+
+    // Extract description
+    let description = document.querySelector('meta[property="og:description"]')?.content?.trim() ||
+                     document.querySelector('meta[name="twitter:description"]')?.content?.trim() ||
+                     document.querySelector('meta[name="description"]')?.content?.trim() ||
+                     'No description available';
+
+    // Clean up and limit length
+    title = title.substring(0, 200);
+    description = description.substring(0, 500);
+
+    logger.info(`Successfully extracted metadata: title="${title}", description="${description}"`);
+
+    return {
+      title,
+      description,
+      url
+    };
+
+  } catch (error) {
+    logger.error(`Error extracting metadata for ${url}:`, error);
+    
+    // Return fallback data
+    return {
+      title: new URL(url).hostname,
+      description: 'Could not extract description - click to edit',
+      url,
+      error: error.message
+    };
+  }
+});
