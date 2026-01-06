@@ -127,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cardDiv.innerHTML = `
             ${imageHtml}
             <div class="card-content">
-                <div class="card-url">${card.url}</div>
+                <div class="card-url"><a href="${card.url}" target="_blank" rel="noopener noreferrer">${card.url}</a></div>
                 <div class="card-title" data-field="title">${card.title}</div>
                 <div class="card-description" data-field="description">${card.description}</div>
                 <div class="card-actions">
