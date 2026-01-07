@@ -2,6 +2,9 @@
 
 A simple web app for creating and managing cards from URLs. Each card displays the title and description extracted from a URL, with user editing capabilities.
 
+Live demo at https://url-cards.web.app/  (limited user signup)
+
+
 ## Features
 
 - **URL-based Cards**: Add URLs to create cards with auto-extracted metadata
