@@ -86,7 +86,7 @@ A simple web app for creating and managing cards from URLs. Each card displays t
    ```bash
    firebase login
    firebase init
-   # Select: Hosting, Functions, Firestore
+   # Select: Hosting, Functions, Firestore, Authentication
    # Choose your project
    # Accept defaults or customize as needed
    ```
