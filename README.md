@@ -182,8 +182,9 @@ To enable automatic deployments on push to main:
 
 1. **Local development**: `firebase emulators:start`
 2. **Test changes**: Hot reload in browser
-3. **Deploy**: `firebase deploy`
-4. **Auto-deploy**: Push to main branch (GitHub Actions)
+3. **Lint functions code**: `npm run lint --prefix functions` (auto-fix: add `-- --fix`)
+4. **Deploy**: `firebase deploy`
+5. **Auto-deploy**: Push to main branch (GitHub Actions)
 
 ## Cost Expectations
 
