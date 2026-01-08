@@ -3,6 +3,9 @@ let cardsCollection;
 let boardsCollection;
 let currentUser = null;
 let currentBoardId = null;
+let boardsUnsubscribe = null;
+let cardsUnsubscribe = null;
+let boardsGeneration = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Card-related elements
@@ -176,7 +179,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 userId: currentUser.uid,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            loadBoards();
         } catch (error) {
             console.error('Error creating board:', error);
             alert('Failed to create board. Please try again.');
@@ -186,16 +188,29 @@ document.addEventListener('DOMContentLoaded', function() {
     function loadBoards() {
         if (!currentUser) return;
 
-        boardsCollection
+        // Unsubscribe from previous listener if it exists
+        if (boardsUnsubscribe) {
+            boardsUnsubscribe();
+        }
+
+        boardsUnsubscribe = boardsCollection
             .where('userId', '==', currentUser.uid)
             .orderBy('createdAt', 'asc')
             .onSnapshot(async (snapshot) => {
-                boardsList.innerHTML = '';
+                // Increment generation for this snapshot
+                const currentGeneration = ++boardsGeneration;
 
-                for (const doc of snapshot.docs) {
-                    const board = doc.data();
-                    const boardElement = await createBoardElement(doc.id, board);
-                    boardsList.appendChild(boardElement);
+                // Create all board elements in parallel
+                const boardElements = await Promise.all(
+                    snapshot.docs.map(doc => createBoardElement(doc.id, doc.data()))
+                );
+
+                // Only update DOM if this is still the latest snapshot
+                if (currentGeneration === boardsGeneration) {
+                    boardsList.innerHTML = '';
+                    boardElements.forEach(element => {
+                        boardsList.appendChild(element);
+                    });
                 }
             });
     }
@@ -405,7 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        cardsCollection
+        // Unsubscribe from previous listener if it exists
+        if (cardsUnsubscribe) {
+            cardsUnsubscribe();
+        }
+
+        cardsUnsubscribe = cardsCollection
             .where('userId', '==', currentUser.uid)
             .where('boardId', '==', boardId)
             .orderBy('createdAt', 'desc')
