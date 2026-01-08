@@ -19,7 +19,7 @@
     <div class="container">
         <header>
             <div class="header-top">
-                <h1>URL Cards</h1>
+                <h1 id="appTitle">URL Cards</h1>
                 <div id="authContainer" class="auth-container">
                     <div id="userInfo" class="user-info" style="display: none;">
                         <span id="userName"></span>
@@ -28,13 +28,31 @@
                     <button id="loginBtn" class="login-btn" style="display: none;">Sign in with Google</button>
                 </div>
             </div>
-            <div id="addCardSection" class="add-card-section" style="display: none;">
+        </header>
+
+        <!-- Boards List View -->
+        <div id="boardsView" style="display: none;">
+            <div class="boards-header">
+                <h2>Your Boards</h2>
+                <button id="createBoardBtn" class="create-board-btn">Create New Board</button>
+            </div>
+            <div id="boardsList" class="boards-list"></div>
+        </div>
+
+        <!-- Board Detail View -->
+        <div id="boardView" style="display: none;">
+            <div class="board-header">
+                <button id="backToBoards" class="back-btn">← Back to Boards</button>
+                <h2 id="boardName" class="board-name"></h2>
+                <button id="renameBoardBtn" class="rename-board-btn">Rename</button>
+                <button id="deleteBoardBtn" class="delete-board-btn">Delete Board</button>
+            </div>
+            <div id="addCardSection" class="add-card-section">
                 <input type="url" id="urlInput" placeholder="Enter URL..." />
                 <button id="addCardBtn">Add Card</button>
             </div>
-        </header>
-        <main id="cardsContainer" class="cards-container">
-        </main>
+            <main id="cardsContainer" class="cards-container"></main>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>

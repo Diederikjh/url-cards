@@ -84,6 +84,137 @@ header h1 {
     background-color: #c0392b;
 }
 
+/* Boards View Styles */
+.boards-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.boards-header h2 {
+    color: #2c3e50;
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin: 0;
+}
+
+.create-board-btn {
+    padding: 12px 24px;
+    background-color: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-weight: 500;
+}
+
+.create-board-btn:hover {
+    background-color: #229954;
+}
+
+.boards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.board-item {
+    background: white;
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.board-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.board-item-name {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.board-item-count {
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+/* Board Detail View Styles */
+.board-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.back-btn {
+    padding: 8px 16px;
+    background-color: #95a5a6;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.back-btn:hover {
+    background-color: #7f8c8d;
+}
+
+.board-name {
+    flex: 1;
+    color: #2c3e50;
+    font-size: 1.8rem;
+    font-weight: 400;
+    margin: 0;
+}
+
+.rename-board-btn, .delete-board-btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.rename-board-btn {
+    background-color: #f39c12;
+    color: white;
+}
+
+.rename-board-btn:hover {
+    background-color: #e67e22;
+}
+
+.delete-board-btn {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.delete-board-btn:hover {
+    background-color: #c0392b;
+}
+
 .add-card-section {
     display: flex;
     gap: 10px;

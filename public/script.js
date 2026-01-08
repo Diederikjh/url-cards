@@ -1,16 +1,32 @@
 let db;
 let cardsCollection;
+let boardsCollection;
 let currentUser = null;
+let currentBoardId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Card-related elements
     const urlInput = document.getElementById('urlInput');
     const addCardBtn = document.getElementById('addCardBtn');
     const cardsContainer = document.getElementById('cardsContainer');
+
+    // Auth elements
     const loginBtn = document.getElementById('loginBtn');
     const logoutBtn = document.getElementById('logoutBtn');
     const userInfo = document.getElementById('userInfo');
     const userName = document.getElementById('userName');
-    const addCardSection = document.getElementById('addCardSection');
+
+    // View elements
+    const boardsView = document.getElementById('boardsView');
+    const boardView = document.getElementById('boardView');
+
+    // Board-related elements
+    const createBoardBtn = document.getElementById('createBoardBtn');
+    const boardsList = document.getElementById('boardsList');
+    const backToBoards = document.getElementById('backToBoards');
+    const boardName = document.getElementById('boardName');
+    const renameBoardBtn = document.getElementById('renameBoardBtn');
+    const deleteBoardBtn = document.getElementById('deleteBoardBtn');
 
     // Wait for Firebase to initialize
     document.addEventListener('firebaseLoaded', initializeApp);
@@ -35,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             db = firebase.firestore();
             cardsCollection = db.collection('cards');
+            boardsCollection = db.collection('boards');
 
             // Set up authentication state listener
             firebase.auth().onAuthStateChanged((user) => {
@@ -43,17 +60,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (user) {
                     console.log('User signed in:', user.email);
-                    loadCards();
+                    ensureDefaultBoard().then(() => {
+                        handleRouting();
+                    });
                 } else {
                     console.log('User signed out');
-                    cardsContainer.innerHTML = '';
+                    showView('login');
                 }
             });
+
+            // Set up hash routing
+            window.addEventListener('hashchange', handleRouting);
 
             // Set up login/logout handlers
             loginBtn.addEventListener('click', handleLogin);
             logoutBtn.addEventListener('click', handleLogout);
 
+            // Set up board handlers
+            createBoardBtn.addEventListener('click', handleCreateBoard);
+            backToBoards.addEventListener('click', () => {
+                window.location.hash = '#boards';
+            });
+            renameBoardBtn.addEventListener('click', handleRenameBoard);
+            deleteBoardBtn.addEventListener('click', handleDeleteBoard);
+
+            // Set up card handlers
             addCardBtn.addEventListener('click', handleAddCard);
             urlInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
@@ -73,12 +104,193 @@ document.addEventListener('DOMContentLoaded', function() {
             loginBtn.style.display = 'none';
             userInfo.style.display = 'flex';
             userName.textContent = user.displayName || user.email;
-            addCardSection.style.display = 'flex';
         } else {
             // User is signed out
             loginBtn.style.display = 'block';
             userInfo.style.display = 'none';
-            addCardSection.style.display = 'none';
+        }
+    }
+
+    function showView(view) {
+        boardsView.style.display = 'none';
+        boardView.style.display = 'none';
+
+        if (view === 'boards') {
+            boardsView.style.display = 'block';
+            loadBoards();
+        } else if (view === 'board') {
+            boardView.style.display = 'block';
+        }
+    }
+
+    function handleRouting() {
+        if (!currentUser) {
+            return;
+        }
+
+        const hash = window.location.hash;
+
+        if (!hash || hash === '#boards') {
+            showView('boards');
+        } else if (hash.startsWith('#board/')) {
+            const boardId = hash.substring(7);
+            currentBoardId = boardId;
+            showView('board');
+            loadBoard(boardId);
+        } else {
+            // Default to boards view
+            window.location.hash = '#boards';
+        }
+    }
+
+    async function ensureDefaultBoard() {
+        if (!currentUser) return;
+
+        try {
+            const snapshot = await boardsCollection
+                .where('userId', '==', currentUser.uid)
+                .limit(1)
+                .get();
+
+            if (snapshot.empty) {
+                // Create default board
+                console.log('Creating default board for new user');
+                await boardsCollection.add({
+                    name: 'My First Board',
+                    userId: currentUser.uid,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            }
+        } catch (error) {
+            console.error('Error ensuring default board:', error);
+        }
+    }
+
+    async function handleCreateBoard() {
+        const name = prompt('Enter board name:');
+        if (!name || !name.trim()) return;
+
+        try {
+            await boardsCollection.add({
+                name: name.trim(),
+                userId: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            loadBoards();
+        } catch (error) {
+            console.error('Error creating board:', error);
+            alert('Failed to create board. Please try again.');
+        }
+    }
+
+    function loadBoards() {
+        if (!currentUser) return;
+
+        boardsCollection
+            .where('userId', '==', currentUser.uid)
+            .orderBy('createdAt', 'asc')
+            .onSnapshot(async (snapshot) => {
+                boardsList.innerHTML = '';
+
+                for (const doc of snapshot.docs) {
+                    const board = doc.data();
+                    const boardElement = await createBoardElement(doc.id, board);
+                    boardsList.appendChild(boardElement);
+                }
+            });
+    }
+
+    async function createBoardElement(id, board) {
+        const boardDiv = document.createElement('div');
+        boardDiv.className = 'board-item';
+        boardDiv.onclick = () => {
+            window.location.hash = `#board/${id}`;
+        };
+
+        // Get card count for this board
+        const cardsSnapshot = await cardsCollection
+            .where('userId', '==', currentUser.uid)
+            .where('boardId', '==', id)
+            .get();
+
+        const cardCount = cardsSnapshot.size;
+
+        boardDiv.innerHTML = `
+            <div class="board-item-name">${board.name}</div>
+            <div class="board-item-count">${cardCount} ${cardCount === 1 ? 'card' : 'cards'}</div>
+        `;
+
+        return boardDiv;
+    }
+
+    async function loadBoard(boardId) {
+        if (!currentUser || !boardId) return;
+
+        try {
+            const doc = await boardsCollection.doc(boardId).get();
+            if (!doc.exists || doc.data().userId !== currentUser.uid) {
+                alert('Board not found');
+                window.location.hash = '#boards';
+                return;
+            }
+
+            const board = doc.data();
+            boardName.textContent = board.name;
+            loadCards(boardId);
+        } catch (error) {
+            console.error('Error loading board:', error);
+            alert('Failed to load board');
+            window.location.hash = '#boards';
+        }
+    }
+
+    async function handleRenameBoard() {
+        if (!currentBoardId) return;
+
+        const doc = await boardsCollection.doc(currentBoardId).get();
+        const currentName = doc.data().name;
+        const newName = prompt('Enter new board name:', currentName);
+
+        if (!newName || !newName.trim() || newName.trim() === currentName) return;
+
+        try {
+            await boardsCollection.doc(currentBoardId).update({
+                name: newName.trim()
+            });
+            boardName.textContent = newName.trim();
+        } catch (error) {
+            console.error('Error renaming board:', error);
+            alert('Failed to rename board. Please try again.');
+        }
+    }
+
+    async function handleDeleteBoard() {
+        if (!currentBoardId) return;
+
+        if (!confirm('Are you sure you want to delete this board? All cards in this board will also be deleted.')) {
+            return;
+        }
+
+        try {
+            // Delete all cards in the board
+            const cardsSnapshot = await cardsCollection
+                .where('userId', '==', currentUser.uid)
+                .where('boardId', '==', currentBoardId)
+                .get();
+
+            const batch = db.batch();
+            cardsSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            // Delete the board
+            batch.delete(boardsCollection.doc(currentBoardId));
+
+            await batch.commit();
+            window.location.hash = '#boards';
+        } catch (error) {
+            console.error('Error deleting board:', error);
+            alert('Failed to delete board. Please try again.');
         }
     }
 
@@ -164,26 +376,38 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        if (!currentBoardId) {
+            console.error('No board selected');
+            return;
+        }
+
         const card = {
             url: url,
             title: title,
             description: description,
             imageUrl: imageUrl,
             userId: currentUser.uid,
+            boardId: currentBoardId,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         };
 
         await cardsCollection.add(card);
     }
 
-    function loadCards() {
+    function loadCards(boardId) {
         if (!currentUser) {
             console.log('No user signed in, not loading cards');
             return;
         }
 
+        if (!boardId) {
+            console.log('No board selected');
+            return;
+        }
+
         cardsCollection
             .where('userId', '==', currentUser.uid)
+            .where('boardId', '==', boardId)
             .orderBy('createdAt', 'desc')
             .onSnapshot((snapshot) => {
                 cardsContainer.innerHTML = '';
