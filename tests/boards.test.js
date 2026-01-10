@@ -1,5 +1,5 @@
 // Boards operations tests
-const { getFirestore, clearDatabase, admin } = require('./setup');
+const { getFirestore, clearDatabase, cleanup, admin } = require('./setup');
 
 describe('Boards Operations', () => {
   let db;
@@ -14,7 +14,13 @@ describe('Boards Operations', () => {
   });
 
   afterAll(async () => {
-    await clearDatabase();
+    try {
+      await clearDatabase();
+      await cleanup();
+    } catch (error) {
+      console.error('Error during cleanup:', error);
+      // Don't re-throw to prevent AggregateError
+    }
   });
 
   describe('Create Board', () => {
