@@ -32,11 +32,16 @@ async function clearDatabase() {
     };
 
     const req = http.request(options, (res) => {
-      if (res.statusCode === 200) {
-        resolve();
-      } else {
-        reject(new Error(`Failed to clear database: ${res.statusCode}`));
-      }
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) {
+          // Add small delay to ensure cleanup completes
+          setTimeout(resolve, 100);
+        } else {
+          reject(new Error(`Failed to clear database: ${res.statusCode} - ${data}`));
+        }
+      });
     });
 
     req.on('error', reject);

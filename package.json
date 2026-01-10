@@ -4,9 +4,9 @@
   "description": "A simple web app for creating and managing cards from URLs. Each card displays the title and description extracted from a URL, with user editing capabilities.",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
+    "test": "jest --forceExit",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage --forceExit"
   },
   "jest": {
     "testEnvironment": "node",
@@ -23,7 +23,7 @@
       "/node_modules/"
     ],
     "testTimeout": 10000,
-    "forceExit": true
+    "maxWorkers": 1
   },
   "repository": {
     "type": "git",

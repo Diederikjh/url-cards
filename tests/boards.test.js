@@ -1,5 +1,5 @@
 // Boards operations tests
-const { getFirestore, clearDatabase, cleanup, admin } = require('./setup');
+const { getFirestore, clearDatabase, admin } = require('./setup');
 
 describe('Boards Operations', () => {
   let db;
@@ -15,7 +15,6 @@ describe('Boards Operations', () => {
 
   afterAll(async () => {
     await clearDatabase();
-    await cleanup();
   });
 
   describe('Create Board', () => {

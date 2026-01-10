@@ -1,5 +1,5 @@
 // Cards operations tests
-const { getFirestore, clearDatabase, cleanup, admin } = require('./setup');
+const { getFirestore, clearDatabase, admin } = require('./setup');
 
 describe('Cards Operations', () => {
   let db;
@@ -24,7 +24,6 @@ describe('Cards Operations', () => {
 
   afterAll(async () => {
     await clearDatabase();
-    await cleanup();
   });
 
   describe('Create Card', () => {

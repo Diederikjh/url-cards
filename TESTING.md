@@ -24,8 +24,14 @@ npm run test:coverage
 ## Test Files
 
 - `tests/setup.js` - Firebase emulator configuration
-- `tests/boards.test.js` - Board CRUD operations
-- `tests/cards.test.js` - Card CRUD operations
+- `tests/boards.test.js` - Board CRUD operations (12 tests)
+- `tests/cards.test.js` - Card CRUD operations (15 tests)
+
+## Notes
+
+- Tests run serially (`maxWorkers: 1`) to avoid database conflicts
+- Uses `--forceExit` due to Firebase Admin SDK keeping GRPC connections alive
+- Database is cleared between each test for isolation
 
 ## CI/CD
 
