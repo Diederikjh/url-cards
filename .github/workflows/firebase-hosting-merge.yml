@@ -41,6 +41,8 @@ jobs:
           args: deploy --only firestore --project url-cards
         env:
           GCP_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_URL_CARDS }}
+      - name: Install function dependencies
+        run: npm ci --prefix functions
       - name: Deploy Functions
         uses: w9jds/firebase-action@master
         with:
