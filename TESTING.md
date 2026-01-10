@@ -27,6 +27,10 @@ npm run test:coverage
 - `tests/boards.test.js` - Board CRUD operations (12 tests)
 - `tests/cards.test.js` - Card CRUD operations (15 tests)
 
+## Important: Code Changes Require Test Review
+
+Since these tests focus primarily on Firebase functionality, **whenever code changes are made, LLMs must review the test files to ensure they still cover the expected behavior and no fixes are needed.**
+
 ## Notes
 
 - Tests run serially (`maxWorkers: 1`) to avoid database conflicts
