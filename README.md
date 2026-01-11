@@ -4,7 +4,7 @@ A simple web app for creating and managing cards from URLs. Each card displays t
 
 Live demo at https://url-cards.web.app/  (limited user signup for now)
 
-The one bid design goal of this project is for anyone to deploy this app on their own firebase project and change the software to fit their own needs.  (Like opensource software is supposed to work.)  So please feel free to fork and play.
+The one big design goal of this project is for anyone to deploy this app on their own firebase project and change the software to fit their own needs.  (Like opensource software is supposed to work.)  So please feel free to fork and play.
 
 Lots of help from the LLMs, as I'm not a web dev.
 
