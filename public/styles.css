@@ -315,15 +315,13 @@ header h1 {
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-}
-
-.card-url a {
-    color: #7f8c8d;
+    color: #3498db;
     text-decoration: none;
 }
 
-.card-url a:hover {
-    color: #3498db;
+.card-url a:hover,
+.public-card .card-url a:hover {
+    color: #2980b9;
     text-decoration: underline;
 }
 
@@ -391,34 +389,6 @@ header h1 {
 .card-description[contenteditable="true"]:focus {
     outline: none;
     box-shadow: 0 0 0 4px rgba(52,152,219,0.12);
-}
-
-.public-card .card-url a {
-    color: #3498db;
-    text-decoration: none;
-    cursor: pointer;
-    pointer-events: auto;
-}
-
-.public-card .card-url a:hover {
-    text-decoration: underline;
-}
-
-.public-card .card-url a {
-    color: #3498db;
-    text-decoration: none;
-    cursor: pointer;
-    pointer-events: auto;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.public-card .card-url a:hover {
-    text-decoration: underline;
 }
 
 /* Public Link Container */
