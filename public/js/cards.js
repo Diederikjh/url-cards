@@ -170,6 +170,7 @@ async function addCard(url, title, description, imageUrl) {
 let editingCardId = null;
 let originalTitle = null;
 let originalDescription = null;
+let editHandlers = {}; // Store handlers by cardId
 
 // Export card editing functions to window for onclick handlers
 window.editCard = function(cardId) {
@@ -209,9 +210,8 @@ window.editCard = function(cardId) {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('click', handleClickAway);
 
-    // Store handlers on card for cleanup
-    card.dataset.keyHandler = handleKeyDown;
-    card.dataset.clickHandler = handleClickAway;
+    // Store handlers for cleanup
+    editHandlers[cardId] = { handleKeyDown, handleClickAway };
 }
 
 window.saveCard = async function(cardId) {
@@ -270,11 +270,12 @@ window.exitEditMode = function(cardId) {
         btn.className = 'edit-btn';
     }
 
-    // Remove event listeners
-    document.removeEventListener('keydown', card.dataset.keyHandler);
-    document.removeEventListener('click', card.dataset.clickHandler);
-    delete card.dataset.keyHandler;
-    delete card.dataset.clickHandler;
+    // Remove event listeners using stored handlers
+    if (editHandlers[cardId]) {
+        document.removeEventListener('keydown', editHandlers[cardId].handleKeyDown);
+        document.removeEventListener('click', editHandlers[cardId].handleClickAway);
+        delete editHandlers[cardId];
+    }
     editingCardId = null;
 }
 
