@@ -1,8 +1,12 @@
 # URL Cards
 
-A simple web app for creating and managing cards from URLs. Each card displays the title and description extracted from a URL, with user editing capabilities.
+A simple web app for creating and managing cards from URLs. Each card displays the title and description extracted from a URL, with user editing capabilities.  You can optionally make your board public for anyone to read it :) 
 
-Live demo at https://url-cards.web.app/  (limited user signup)
+Live demo at https://url-cards.web.app/  (limited user signup for now)
+
+The one bid design goal of this project is for anyone to deploy this app on their own firebase project and change the software to fit their own needs.  (Like opensource software is supposed to work.)  So please feel free to fork and play.
+
+Lots of help from the LLMs, as I'm not a web dev.
 
 
 ## Features
@@ -12,6 +16,13 @@ Live demo at https://url-cards.web.app/  (limited user signup)
 - **Google Authentication**: Secure user login via Google accounts
 - **Real-time Sync**: Cards sync across devices using Firebase
 - **Responsive Design**: Works on desktop and mobile
+
+
+## Largeish TODOs
+
+ - Drag/drop to re-arrange cards.
+ - Tags on cards
+ - Reactions on cards for public view (only with logged in user)
 
 ## Architecture
 
