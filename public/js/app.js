@@ -39,7 +39,8 @@ function onAuthChanged(user) {
             handleRouting();
         });
     } else {
-        showLoginView();
+        // Still call handleRouting to check for public routes
+        handleRouting();
     }
 }
 

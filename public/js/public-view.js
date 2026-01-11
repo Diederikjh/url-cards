@@ -12,9 +12,16 @@ export function initPublicUI() {
     publicBoardTitle = document.getElementById('publicBoardTitle');
     publicCardsContainer = document.getElementById('publicCardsContainer');
     publicBoardBadge = document.getElementById('publicBoardBadge');
+    
+    if (!publicBoardTitle || !publicCardsContainer || !publicBoardBadge) {
+        console.error('Public UI elements not found in DOM');
+    } else {
+        console.log('Public UI initialized successfully');
+    }
 }
 
 export async function loadPublicBoard(shareId) {
+    console.log('Loading public board with shareId:', shareId);
     try {
         // Find board by publicShareId
         const snapshot = await boardsCollection
@@ -22,6 +29,8 @@ export async function loadPublicBoard(shareId) {
             .where('isPublic', '==', true)
             .limit(1)
             .get();
+
+        console.log('Board query result:', snapshot.empty ? 'no boards found' : 'board found');
 
         if (snapshot.empty) {
             publicBoardTitle.textContent = 'Board not found';
@@ -32,6 +41,8 @@ export async function loadPublicBoard(shareId) {
         const boardDoc = snapshot.docs[0];
         const board = boardDoc.data();
         const boardId = boardDoc.id;
+
+        console.log('Board loaded:', board.name);
 
         // Update title
         publicBoardTitle.textContent = board.name;

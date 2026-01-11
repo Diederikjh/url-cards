@@ -21,10 +21,12 @@ export function initRouter(onBoardLoad) {
 
 export function handleRouting() {
     const hash = window.location.hash;
+    console.log('handleRouting called with hash:', hash);
 
     // Check if it's a public route
     if (hash.startsWith('#public/')) {
         const shareId = hash.substring(8);
+        console.log('Public route detected, shareId:', shareId);
         showView('public');
         loadPublicBoard(shareId);
         return;
@@ -32,9 +34,12 @@ export function handleRouting() {
 
     // Private routes require authentication
     if (!getCurrentUser()) {
+        console.log('User not authenticated, showing login view');
+        showLoginView();
         return;
     }
 
+    console.log('User authenticated, handling private routes');
     if (!hash || hash === '#boards') {
         showView('boards');
     } else if (hash.startsWith('#board/')) {
@@ -47,6 +52,7 @@ export function handleRouting() {
 }
 
 function showView(view) {
+    console.log('Showing view:', view);
     boardsView.style.display = 'none';
     boardView.style.display = 'none';
     publicView.style.display = 'none';
