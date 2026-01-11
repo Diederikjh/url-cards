@@ -53,10 +53,36 @@ export async function ensureDefaultBoard() {
                 userId: currentUser.uid,
                 createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
+            // Wait for the newly created board to appear in the real-time listener
+            // to prevent race condition where loadBoards fires before board is available
+            await waitForBoardToAppear(currentUser.uid);
         }
     } catch (error) {
         console.error('Error ensuring default board:', error);
     }
+}
+
+async function waitForBoardToAppear(userId) {
+    return new Promise((resolve) => {
+        const timeout = setTimeout(() => {
+            console.warn('Timeout waiting for board to appear in listener');
+            unsubscribe();
+            resolve();
+        }, 5000); // 5 second timeout to prevent infinite wait
+
+        const unsubscribe = boardsCollection
+            .where('userId', '==', userId)
+            .limit(1)
+            .onSnapshot((snapshot) => {
+                if (!snapshot.empty) {
+                    console.log('Default board appeared in listener');
+                    clearTimeout(timeout);
+                    unsubscribe();
+                    resolve();
+                }
+            });
+    });
 }
 
 export function loadBoards() {
@@ -119,8 +145,20 @@ export async function loadBoard(boardId) {
     currentBoardId = boardId;
 
     try {
-        const doc = await boardsCollection.doc(boardId).get();
-        if (!doc.exists || doc.data().userId !== currentUser.uid) {
+        // Add retry logic for newly created boards
+        let doc = await boardsCollection.doc(boardId).get();
+        let retries = 0;
+        const maxRetries = 3;
+        
+        // If document doesn't exist or can't be read, retry a few times
+        while ((!doc.exists || !doc.data()) && retries < maxRetries) {
+            console.log(`Board not immediately available, retrying... (attempt ${retries + 1}/${maxRetries})`);
+            await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retry
+            doc = await boardsCollection.doc(boardId).get();
+            retries++;
+        }
+        
+        if (!doc.exists || !doc.data() || doc.data().userId !== currentUser.uid) {
             alert('Board not found');
             navigateToBoards();
             return;
