@@ -62,6 +62,20 @@
       ]
     },
     {
+      "collectionGroup": "boards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "publicShareId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "isPublic",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
       "collectionGroup": "cards",
       "queryScope": "COLLECTION",
       "fields": [
