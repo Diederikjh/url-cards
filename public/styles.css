@@ -401,7 +401,8 @@ header h1 {
     }
 
     .rename-board-btn,
-    .delete-board-btn {
+    .delete-board-btn,
+    .share-public-btn {
         flex: 1;
         min-width: 100px;
     }
@@ -418,4 +419,128 @@ header h1 {
     .cards-container {
         grid-template-columns: 1fr;
     }
+}
+
+/* Public Board View Styles */
+.public-board-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.public-badge-text {
+    background-color: #4CAF50;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.public-badge {
+    font-size: 1.2rem;
+    margin-right: 5px;
+    display: inline-block;
+}
+
+.board-item-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Public Card Styles */
+.public-card {
+    pointer-events: none;
+}
+
+.public-card .card-url a {
+    color: #3498db;
+    text-decoration: none;
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.public-card .card-url a:hover {
+    text-decoration: underline;
+}
+
+/* Public Link Container */
+#publicLinkContainer {
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 20px;
+    margin-top: -10px;
+}
+
+.public-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.public-link label {
+    font-weight: 600;
+    color: #2c3e50;
+    white-space: nowrap;
+}
+
+.public-link-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-family: monospace;
+    background-color: white;
+    color: #333;
+}
+
+.copy-link-btn {
+    padding: 8px 16px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+    white-space: nowrap;
+}
+
+.copy-link-btn:hover {
+    background-color: #2980b9;
+}
+
+.share-public-btn {
+    padding: 8px 16px;
+    background-color: #f39c12;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background-color 0.2s;
+}
+
+.share-public-btn:hover {
+    background-color: #e67e22;
+}
+
+.share-public-btn.public-active {
+    background-color: #27ae60;
+}
+
+.share-public-btn.public-active:hover {
+    background-color: #229954;
 }

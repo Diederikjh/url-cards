@@ -45,13 +45,24 @@
                 <button id="backToBoards" class="back-btn">← Back to Boards</button>
                 <h2 id="boardName" class="board-name"></h2>
                 <button id="renameBoardBtn" class="rename-board-btn">Rename</button>
+                <button id="sharePublicBtn" class="share-public-btn">Make Public</button>
                 <button id="deleteBoardBtn" class="delete-board-btn">Delete Board</button>
             </div>
+            <div id="publicLinkContainer" style="display: none;"></div>
             <div id="addCardSection" class="add-card-section">
                 <input type="url" id="urlInput" placeholder="Enter URL..." />
                 <button id="addCardBtn">Add Card</button>
             </div>
             <main id="cardsContainer" class="cards-container"></main>
+        </div>
+
+        <!-- Public Board View -->
+        <div id="publicView" style="display: none;">
+            <div class="public-board-header">
+                <h2 id="publicBoardTitle" class="board-name"></h2>
+                <span id="publicBoardBadge" class="public-badge-text" style="display: none;">Public Board</span>
+            </div>
+            <main id="publicCardsContainer" class="cards-container"></main>
         </div>
     </div>
     <script type="module" src="js/app.js"></script>

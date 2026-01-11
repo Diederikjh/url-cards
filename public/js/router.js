@@ -1,25 +1,39 @@
 // Routing module
 import { getCurrentUser } from './auth.js';
 import { loadBoards } from './boards.js';
+import { initPublicUI, loadPublicBoard, unsubscribePublicCards } from './public-view.js';
 
 let boardsView;
 let boardView;
+let publicView;
 let onBoardLoadCallback;
 
 export function initRouter(onBoardLoad) {
     boardsView = document.getElementById('boardsView');
     boardView = document.getElementById('boardView');
+    publicView = document.getElementById('publicView');
     onBoardLoadCallback = onBoardLoad;
+
+    initPublicUI();
 
     window.addEventListener('hashchange', handleRouting);
 }
 
 export function handleRouting() {
-    if (!getCurrentUser()) {
+    const hash = window.location.hash;
+
+    // Check if it's a public route
+    if (hash.startsWith('#public/')) {
+        const shareId = hash.substring(8);
+        showView('public');
+        loadPublicBoard(shareId);
         return;
     }
 
-    const hash = window.location.hash;
+    // Private routes require authentication
+    if (!getCurrentUser()) {
+        return;
+    }
 
     if (!hash || hash === '#boards') {
         showView('boards');
@@ -35,12 +49,17 @@ export function handleRouting() {
 function showView(view) {
     boardsView.style.display = 'none';
     boardView.style.display = 'none';
+    publicView.style.display = 'none';
 
     if (view === 'boards') {
         boardsView.style.display = 'block';
         loadBoards();
+        unsubscribePublicCards();
     } else if (view === 'board') {
         boardView.style.display = 'block';
+        unsubscribePublicCards();
+    } else if (view === 'public') {
+        publicView.style.display = 'block';
     }
 }
 
@@ -55,4 +74,5 @@ export function navigateToBoard(boardId) {
 export function showLoginView() {
     boardsView.style.display = 'none';
     boardView.style.display = 'none';
+    publicView.style.display = 'none';
 }

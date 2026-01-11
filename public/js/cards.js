@@ -4,6 +4,7 @@ import { getCurrentUser } from './auth.js';
 import { currentBoardId } from './boards.js';
 
 let cardsUnsubscribe = null;
+let isReadOnly = false;
 
 // DOM elements
 let urlInput;
@@ -24,6 +25,7 @@ export function initCardsUI() {
 }
 
 export function loadCards(boardId) {
+    isReadOnly = false;
     const currentUser = getCurrentUser();
     if (!currentUser) {
         console.log('No user signed in, not loading cards');
@@ -63,16 +65,21 @@ function createCardElement(id, card) {
         `<div class="card-image"><img src="${card.imageUrl}" alt="${card.title}" onerror="this.parentElement.style.display='none'"></div>` :
         '';
 
+    // In read-only mode, don't show edit/delete buttons
+    const actionsHtml = isReadOnly ? '' : `
+        <div class="card-actions">
+            <button class="edit-btn" onclick="window.editCard('${id}')">Edit</button>
+            <button class="delete-btn" onclick="window.deleteCard('${id}')">Delete</button>
+        </div>
+    `;
+
     cardDiv.innerHTML = `
         ${imageHtml}
         <div class="card-content">
             <div class="card-url"><a href="${card.url}" target="_blank" rel="noopener noreferrer">${card.url}</a></div>
             <div class="card-title" data-field="title">${card.title}</div>
             <div class="card-description" data-field="description">${card.description}</div>
-            <div class="card-actions">
-                <button class="edit-btn" onclick="window.editCard('${id}')">Edit</button>
-                <button class="delete-btn" onclick="window.deleteCard('${id}')">Delete</button>
-            </div>
+            ${actionsHtml}
         </div>
     `;
     return cardDiv;
@@ -215,4 +222,8 @@ window.deleteCard = async function(cardId) {
             alert('Failed to delete card. Please try again.');
         }
     }
+}
+
+export function setReadOnly(readOnly) {
+    isReadOnly = readOnly;
 }
