@@ -166,6 +166,11 @@ async function addCard(url, title, description, imageUrl) {
     await cardsCollection.add(card);
 }
 
+// Store original content for cancel
+let editingCardId = null;
+let originalTitle = null;
+let originalDescription = null;
+
 // Export card editing functions to window for onclick handlers
 window.editCard = function(cardId) {
     const card = document.querySelector(`[data-card-id="${cardId}"]`);
@@ -175,6 +180,11 @@ window.editCard = function(cardId) {
     const descEl = card.querySelector('[data-field="description"]');
     const editBtn = card.querySelector('.edit-btn');
 
+    // Store original content
+    editingCardId = cardId;
+    originalTitle = titleEl.textContent;
+    originalDescription = descEl.textContent;
+
     titleEl.contentEditable = true;
     descEl.contentEditable = true;
     titleEl.focus();
@@ -182,6 +192,26 @@ window.editCard = function(cardId) {
     editBtn.textContent = 'Save';
     editBtn.onclick = () => window.saveCard(cardId);
     editBtn.className = 'save-btn';
+
+    // Add keyboard and click handlers
+    const handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            window.cancelCard(cardId);
+        }
+    };
+
+    const handleClickAway = (e) => {
+        if (!card.contains(e.target)) {
+            window.cancelCard(cardId);
+        }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('click', handleClickAway);
+
+    // Store handlers on card for cleanup
+    card.dataset.keyHandler = handleKeyDown;
+    card.dataset.clickHandler = handleClickAway;
 }
 
 window.saveCard = async function(cardId) {
@@ -190,7 +220,6 @@ window.saveCard = async function(cardId) {
 
     const titleEl = card.querySelector('[data-field="title"]');
     const descEl = card.querySelector('[data-field="description"]');
-    const saveBtn = card.querySelector('.save-btn');
 
     const newTitle = titleEl.textContent.trim();
     const newDescription = descEl.textContent.trim();
@@ -201,16 +230,52 @@ window.saveCard = async function(cardId) {
             description: newDescription
         });
 
-        titleEl.contentEditable = false;
-        descEl.contentEditable = false;
-
-        saveBtn.textContent = 'Edit';
-        saveBtn.onclick = () => window.editCard(cardId);
-        saveBtn.className = 'edit-btn';
+        // Clear edit state
+        editingCardId = null;
+        window.exitEditMode(cardId);
     } catch (error) {
         console.error('Error updating card:', error);
         alert('Failed to save changes. Please try again.');
     }
+}
+
+window.cancelCard = function(cardId) {
+    const card = document.querySelector(`[data-card-id="${cardId}"]`);
+    if (!card) return;
+
+    const titleEl = card.querySelector('[data-field="title"]');
+    const descEl = card.querySelector('[data-field="description"]');
+
+    // Restore original content
+    if (originalTitle !== null) titleEl.textContent = originalTitle;
+    if (originalDescription !== null) descEl.textContent = originalDescription;
+
+    window.exitEditMode(cardId);
+}
+
+window.exitEditMode = function(cardId) {
+    const card = document.querySelector(`[data-card-id="${cardId}"]`);
+    if (!card) return;
+
+    const titleEl = card.querySelector('[data-field="title"]');
+    const descEl = card.querySelector('[data-field="description"]');
+    const btn = card.querySelector('.save-btn') || card.querySelector('.edit-btn');
+
+    titleEl.contentEditable = false;
+    descEl.contentEditable = false;
+
+    if (btn) {
+        btn.textContent = 'Edit';
+        btn.onclick = () => window.editCard(cardId);
+        btn.className = 'edit-btn';
+    }
+
+    // Remove event listeners
+    document.removeEventListener('keydown', card.dataset.keyHandler);
+    document.removeEventListener('click', card.dataset.clickHandler);
+    delete card.dataset.keyHandler;
+    delete card.dataset.clickHandler;
+    editingCardId = null;
 }
 
 window.deleteCard = async function(cardId) {
