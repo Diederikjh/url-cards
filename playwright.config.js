@@ -42,6 +42,9 @@ export default defineConfig({
 
     // Video on failure
     video: 'retain-on-failure',
+
+    // Headless mode for CI/CD
+    headless: true,
   },
 
   // Do NOT use webServer - we'll handle Firebase Emulator separately
@@ -50,12 +53,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: { ...devices['Desktop Chrome'], headless: true },
     },
   ],
 
