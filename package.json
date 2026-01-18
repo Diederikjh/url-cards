@@ -6,7 +6,11 @@
   "scripts": {
     "test": "jest --forceExit",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage --forceExit"
+    "test:coverage": "jest --coverage --forceExit",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:headed": "playwright test --headed",
+    "serve:test": "firebase serve --only hosting --port 5000"
   },
   "jest": {
     "testEnvironment": "node",
@@ -38,6 +42,7 @@
   "homepage": "https://github.com/Diederikjh/url-cards#readme",
   "devDependencies": {
     "@firebase/rules-unit-testing": "^5.0.0",
+    "@playwright/test": "^1.57.0",
     "firebase-admin": "^13.6.0",
     "jest": "^30.2.0"
   }
