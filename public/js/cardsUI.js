@@ -1,8 +1,8 @@
-// Cards management module
-import { cardsCollection } from './firebase-init.js';
+// Cards management UI module
 import { getCurrentUser } from './auth.js';
-import { currentBoardId } from './boards.js';
+import { currentBoardId } from './boardsUI.js';
 
+let cardService = null;
 let cardsUnsubscribe = null;
 let isReadOnly = false;
 
@@ -11,7 +11,13 @@ let urlInput;
 let addCardBtn;
 let cardsContainer;
 
-export function initCardsUI() {
+/**
+ * Initialize the cards UI
+ * @param {CardService} service - The card service to use
+ */
+export function initCardsUI(service) {
+    cardService = service;
+
     urlInput = document.getElementById('urlInput');
     addCardBtn = document.getElementById('addCardBtn');
     cardsContainer = document.getElementById('cardsContainer');
@@ -27,13 +33,8 @@ export function initCardsUI() {
 export function loadCards(boardId) {
     isReadOnly = false;
     const currentUser = getCurrentUser();
-    if (!currentUser) {
-        console.log('No user signed in, not loading cards');
-        return;
-    }
-
-    if (!boardId) {
-        console.log('No board selected');
+    if (!currentUser || !boardId || !cardService) {
+        console.log('Cannot load cards: missing user, board, or service');
         return;
     }
 
@@ -42,24 +43,19 @@ export function loadCards(boardId) {
         cardsUnsubscribe();
     }
 
-    cardsUnsubscribe = cardsCollection
-        .where('userId', '==', currentUser.uid)
-        .where('boardId', '==', boardId)
-        .orderBy('createdAt', 'desc')
-        .onSnapshot((snapshot) => {
-            cardsContainer.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const card = doc.data();
-                const cardElement = createCardElement(doc.id, card);
-                cardsContainer.appendChild(cardElement);
-            });
+    cardsUnsubscribe = cardService.watchCards(currentUser.uid, boardId, (cards) => {
+        cardsContainer.innerHTML = '';
+        cards.forEach((card) => {
+            const cardElement = createCardElement(card);
+            cardsContainer.appendChild(cardElement);
         });
+    });
 }
 
-function createCardElement(id, card) {
+function createCardElement(card) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card';
-    cardDiv.setAttribute('data-card-id', id);
+    cardDiv.setAttribute('data-card-id', card.id);
 
     const imageHtml = card.imageUrl ?
         `<div class="card-image"><img src="${card.imageUrl}" alt="${card.title}" onerror="this.parentElement.style.display='none'"></div>` :
@@ -68,8 +64,8 @@ function createCardElement(id, card) {
     // In read-only mode, don't show edit/delete buttons
     const actionsHtml = isReadOnly ? '' : `
         <div class="card-actions">
-            <button class="edit-btn" onclick="window.editCard('${id}')">Edit</button>
-            <button class="delete-btn" onclick="window.deleteCard('${id}')">Delete</button>
+            <button class="edit-btn" onclick="window.editCard('${card.id}')">Edit</button>
+            <button class="delete-btn" onclick="window.deleteCard('${card.id}')">Delete</button>
         </div>
     `;
 
@@ -87,7 +83,7 @@ function createCardElement(id, card) {
 
 async function handleAddCard() {
     const url = urlInput.value.trim();
-    if (!url) return;
+    if (!url || !cardService) return;
 
     if (!isValidUrl(url)) {
         alert('Please enter a valid URL');
@@ -143,8 +139,8 @@ async function extractMetadata(url) {
 
 async function addCard(url, title, description, imageUrl) {
     const currentUser = getCurrentUser();
-    if (!currentUser) {
-        console.error('No user signed in');
+    if (!currentUser || !cardService) {
+        console.error('No user signed in or card service not available');
         return;
     }
 
@@ -153,17 +149,14 @@ async function addCard(url, title, description, imageUrl) {
         return;
     }
 
-    const card = {
-        url: url,
-        title: title,
-        description: description,
-        imageUrl: imageUrl,
-        userId: currentUser.uid,
-        boardId: currentBoardId,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    const cardData = {
+        url,
+        title,
+        description,
+        imageUrl
     };
 
-    await cardsCollection.add(card);
+    await cardService.createCard(currentUser.uid, currentBoardId, cardData);
 }
 
 // Store original content for cancel
@@ -216,7 +209,7 @@ window.editCard = function(cardId) {
 
 window.saveCard = async function(cardId) {
     const card = document.querySelector(`[data-card-id="${cardId}"]`);
-    if (!card) return;
+    if (!card || !cardService) return;
 
     const titleEl = card.querySelector('[data-field="title"]');
     const descEl = card.querySelector('[data-field="description"]');
@@ -225,13 +218,12 @@ window.saveCard = async function(cardId) {
     const newDescription = descEl.textContent.trim();
 
     try {
-        await cardsCollection.doc(cardId).update({
+        await cardService.updateCard(cardId, {
             title: newTitle,
             description: newDescription
         });
 
         // Clear edit state
-        editingCardId = null;
         window.exitEditMode(cardId);
     } catch (error) {
         console.error('Error updating card:', error);
@@ -282,7 +274,7 @@ window.exitEditMode = function(cardId) {
 window.deleteCard = async function(cardId) {
     if (confirm('Are you sure you want to delete this card?')) {
         try {
-            await cardsCollection.doc(cardId).delete();
+            await cardService.deleteCard(cardId);
         } catch (error) {
             console.error('Error deleting card:', error);
             alert('Failed to delete card. Please try again.');
