@@ -1,9 +1,15 @@
 // Main application orchestrator
-import { initializeFirebase } from './firebase-init.js';
+import { initializeFirebase, db, cardsCollection } from './firebase-init.js';
 import { initAuthUI, setupAuthStateListener } from './auth.js';
 import { initRouter, handleRouting, showLoginView } from './router.js';
-import { initBoardsUI, ensureDefaultBoard, loadBoard } from './boards.js';
-import { initCardsUI, loadCards } from './cards.js';
+import { initBoardsUI, ensureDefaultBoard, loadBoard } from './boardsUI.js';
+import { initCardsUI, loadCards } from './cardsUI.js';
+import { FirestoreBoardService } from './services/FirestoreBoardService.js';
+import { FirestoreCardService } from './services/FirestoreCardService.js';
+
+// Service instances
+let boardService;
+let cardService;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Wait for Firebase to initialize
@@ -20,11 +26,15 @@ function initializeApp() {
             return;
         }
 
-        // Initialize UI modules
+        // Create service instances
+        boardService = new FirestoreBoardService(db, cardsCollection);
+        cardService = new FirestoreCardService(db);
+
+        // Initialize UI modules with injected services
         initAuthUI();
-        initBoardsUI();
-        initCardsUI();
-        initRouter(onBoardLoad);
+        initBoardsUI(boardService);
+        initCardsUI(cardService);
+        initRouter(onBoardLoad, boardService, cardService);
 
         // Set up authentication state listener
         setupAuthStateListener(onAuthChanged);

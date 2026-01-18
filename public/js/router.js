@@ -1,6 +1,6 @@
 // Routing module
 import { getCurrentUser } from './auth.js';
-import { loadBoards } from './boards.js';
+import { loadBoards } from './boardsUI.js';
 import { initPublicUI, loadPublicBoard, unsubscribePublicCards } from './public-view.js';
 
 let boardsView;
@@ -8,13 +8,19 @@ let boardView;
 let publicView;
 let onBoardLoadCallback;
 
-export function initRouter(onBoardLoad) {
+/**
+ * Initialize router
+ * @param {Function} onBoardLoad - Callback when board is loaded
+ * @param {BoardService} boardService - Board service instance
+ * @param {CardService} cardService - Card service instance
+ */
+export function initRouter(onBoardLoad, boardService, cardService) {
     boardsView = document.getElementById('boardsView');
     boardView = document.getElementById('boardView');
     publicView = document.getElementById('publicView');
     onBoardLoadCallback = onBoardLoad;
 
-    initPublicUI();
+    initPublicUI(boardService, cardService);
 
     window.addEventListener('hashchange', handleRouting);
 }

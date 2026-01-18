@@ -1,5 +1,6 @@
 // Public board view module
-import { boardsCollection, cardsCollection } from './firebase-init.js';
+let boardService;
+let cardService;
 
 let publicCardsUnsubscribe = null;
 
@@ -8,7 +9,15 @@ let publicBoardTitle;
 let publicCardsContainer;
 let publicBoardBadge;
 
-export function initPublicUI() {
+/**
+ * Initialize the public view UI
+ * @param {BoardService} bService - The board service to use
+ * @param {CardService} cService - The card service to use
+ */
+export function initPublicUI(bService, cService) {
+    boardService = bService;
+    cardService = cService;
+
     publicBoardTitle = document.getElementById('publicBoardTitle');
     publicCardsContainer = document.getElementById('publicCardsContainer');
     publicBoardBadge = document.getElementById('publicBoardBadge');
@@ -23,24 +32,12 @@ export function initPublicUI() {
 export async function loadPublicBoard(shareId) {
     console.log('Loading public board with shareId:', shareId);
     try {
-        // Find board by publicShareId
-        const snapshot = await boardsCollection
-            .where('publicShareId', '==', shareId)
-            .where('isPublic', '==', true)
-            .limit(1)
-            .get();
-
-        console.log('Board query result:', snapshot.empty ? 'no boards found' : 'board found');
-
-        if (snapshot.empty) {
-            publicBoardTitle.textContent = 'Board not found';
-            publicCardsContainer.innerHTML = '<p>This public board does not exist or has been made private.</p>';
-            return null;
+        if (!boardService) {
+            throw new Error('Board service not initialized');
         }
 
-        const boardDoc = snapshot.docs[0];
-        const board = boardDoc.data();
-        const boardId = boardDoc.id;
+        // Get board by share ID
+        const board = await boardService.getPublicBoard(shareId);
 
         console.log('Board loaded:', board.name);
 
@@ -50,37 +47,35 @@ export async function loadPublicBoard(shareId) {
         publicBoardBadge.style.display = 'inline';
 
         // Load public cards
-        loadPublicCards(boardId);
+        loadPublicCards(board.id);
 
-        return boardId;
+        return board.id;
     } catch (error) {
         console.error('Error loading public board:', error);
-        publicBoardTitle.textContent = 'Error loading board';
-        publicCardsContainer.innerHTML = '<p>Failed to load public board.</p>';
+        publicBoardTitle.textContent = 'Board not found';
+        publicCardsContainer.innerHTML = '<p>This public board does not exist or has been made private.</p>';
         return null;
     }
 }
 
 function loadPublicCards(boardId) {
+    if (!cardService) {
+        console.error('Card service not initialized');
+        return;
+    }
+
     // Unsubscribe from previous listener if it exists
     if (publicCardsUnsubscribe) {
         publicCardsUnsubscribe();
     }
 
-    publicCardsUnsubscribe = cardsCollection
-        .where('boardId', '==', boardId)
-        .orderBy('createdAt', 'desc')
-        .onSnapshot((snapshot) => {
-            publicCardsContainer.innerHTML = '';
-            snapshot.forEach((doc) => {
-                const card = doc.data();
-                const cardElement = createPublicCardElement(card);
-                publicCardsContainer.appendChild(cardElement);
-            });
-        }, (error) => {
-            console.error('Error loading public cards:', error);
-            publicCardsContainer.innerHTML = '<p>Failed to load cards.</p>';
+    publicCardsUnsubscribe = cardService.watchPublicBoardCards(boardId, (cards) => {
+        publicCardsContainer.innerHTML = '';
+        cards.forEach((card) => {
+            const cardElement = createPublicCardElement(card);
+            publicCardsContainer.appendChild(cardElement);
         });
+    });
 }
 
 function createPublicCardElement(card) {
