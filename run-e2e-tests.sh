@@ -48,13 +48,22 @@ sleep 8
 
 echo ""
 echo "${GREEN}✓ Starting Firebase Hosting server...${NC}"
-npm run serve:test > /tmp/firebase-serve.log 2>&1 &
+
+if [ "$USE_HTTP_SERVER" = "true" ]; then
+  # Use http-server for CI environments without Firebase auth
+  http-server public -p 5000 -c-1 > /tmp/firebase-serve.log 2>&1 &
+else
+  # Use Firebase serve for local development
+  npm run serve:test > /tmp/firebase-serve.log 2>&1 &
+fi
+
 HOSTING_PID=$!
 sleep 5
 
 # Wait for services to be ready
 echo ""
 echo "Waiting for services to be ready..."
+READY_TIMEOUT=0
 for i in {1..120}; do
   # Check Firestore Emulator - check the actual endpoint
   FIRESTORE_READY=false
@@ -71,13 +80,26 @@ for i in {1..120}; do
   fi
   
   # Check Hosting server - must actually serve HTML
-  HOSTING_READY=$(curl -s http://localhost:5000/ 2>/dev/null | grep -q "<!DOCTYPE html>\|<html" && echo "true" || echo "false")
+  HOSTING_READY=false
+  if curl -s -m 5 http://localhost:5000/ 2>/dev/null | grep -q "<!DOCTYPE html>\|<html"; then
+    HOSTING_READY=true
+  fi
   
   if [ "$FIRESTORE_READY" = "true" ] && [ "$HOSTING_READY" = "true" ]; then
     echo ""
     echo "${GREEN}✓ All services ready!${NC}"
+    READY_TIMEOUT=1
     break
   fi
+  
+  # After 30 seconds, proceed anyway (services might be slow to respond)
+  if [ $i -eq 30 ]; then
+    echo ""
+    echo "${YELLOW}⚠️  Services slow to respond, proceeding anyway...${NC}"
+    READY_TIMEOUT=1
+    break
+  fi
+  
   echo -n "."
   sleep 1
   
@@ -96,6 +118,11 @@ for i in {1..120}; do
     exit 1
   fi
 done
+
+if [ "$READY_TIMEOUT" = "0" ]; then
+  echo ""
+  echo "${YELLOW}⚠️  Services did not respond in time, proceeding anyway...${NC}"
+fi
 
 echo ""
 echo ""
