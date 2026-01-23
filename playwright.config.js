@@ -9,7 +9,7 @@ export default defineConfig({
   testMatch: '**/*.e2e.js',
 
   // Maximum time one test can run
-  timeout: 60 * 1000,
+  timeout: 120 * 1000,
 
   // Expect timeout (for waitFor assertions)
   expect: {

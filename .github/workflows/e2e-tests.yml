@@ -28,10 +28,8 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Install Firebase CLI and http-server
-        run: |
-          npm install -g firebase-tools
-          npm install -g http-server
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
 
       - name: Run E2E tests
         run: bash run-e2e-tests.sh
@@ -39,7 +37,6 @@ jobs:
           CI: true
           FIRESTORE_EMULATOR_HOST: localhost:8080
           FIREBASE_AUTH_EMULATOR_HOST: localhost:9099
-          USE_HTTP_SERVER: "true"
 
       - name: Upload test results
         if: always()
