@@ -14,7 +14,9 @@ let cardsContainer;
 let currentCards = []; // Store cards for sorting logic
 let dragState = {
     draggingEl: null,
-    startOrder: []
+    startOrder: [],
+    handleKeyDown: null,
+    didCancel: false
 };
 
 /**
@@ -174,8 +176,16 @@ function handleDragStart(event) {
 
     dragState.draggingEl = event.currentTarget;
     dragState.startOrder = getCurrentOrderIds();
+    dragState.didCancel = false;
     dragState.draggingEl.classList.add('dragging');
     cardsContainer.classList.add('drag-active');
+
+    dragState.handleKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            cancelDrag();
+        }
+    };
+    document.addEventListener('keydown', dragState.handleKeyDown);
 
     if (event.dataTransfer) {
         event.dataTransfer.effectAllowed = 'move';
@@ -183,17 +193,29 @@ function handleDragStart(event) {
     }
 }
 
-function handleDragEnd() {
+function handleDragEnd(event) {
     if (!dragState.draggingEl) return;
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
+    if (dragState.handleKeyDown) {
+        document.removeEventListener('keydown', dragState.handleKeyDown);
+        dragState.handleKeyDown = null;
+    }
+
+    const dropEffect = event && event.dataTransfer ? event.dataTransfer.dropEffect : null;
+    if (dropEffect === 'none' && dragState.startOrder.length) {
+        dragState.didCancel = true;
+        restoreOrder(dragState.startOrder);
+    }
 
     const endOrder = getCurrentOrderIds();
-    const orderChanged = endOrder.length === dragState.startOrder.length &&
+    const orderChanged = !dragState.didCancel &&
+        endOrder.length === dragState.startOrder.length &&
         endOrder.some((id, idx) => id !== dragState.startOrder[idx]);
 
     dragState.draggingEl = null;
     dragState.startOrder = [];
+    dragState.didCancel = false;
 
     if (orderChanged) {
         persistOrderFromDom();
@@ -234,10 +256,39 @@ function handleContainerDrop(event) {
     event.preventDefault();
 }
 
+function cancelDrag() {
+    if (!dragState.draggingEl) return;
+    dragState.didCancel = true;
+    restoreOrder(dragState.startOrder);
+    dragState.draggingEl.classList.remove('dragging');
+    cardsContainer.classList.remove('drag-active');
+    if (dragState.handleKeyDown) {
+        document.removeEventListener('keydown', dragState.handleKeyDown);
+        dragState.handleKeyDown = null;
+    }
+    dragState.draggingEl = null;
+    dragState.startOrder = [];
+}
+
 function getCurrentOrderIds() {
     return Array.from(cardsContainer.querySelectorAll('.card'))
         .map((card) => card.getAttribute('data-card-id'))
         .filter(Boolean);
+}
+
+function restoreOrder(orderIds) {
+    if (!orderIds || orderIds.length === 0) return;
+    const byId = new Map();
+    cardsContainer.querySelectorAll('.card').forEach((card) => {
+        byId.set(card.getAttribute('data-card-id'), card);
+    });
+
+    orderIds.forEach((cardId) => {
+        const cardEl = byId.get(cardId);
+        if (cardEl) {
+            cardsContainer.appendChild(cardEl);
+        }
+    });
 }
 
 async function persistOrderFromDom() {
