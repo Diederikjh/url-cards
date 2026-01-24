@@ -12,6 +12,10 @@ let addCardBtn;
 let sortSelect;
 let cardsContainer;
 let currentCards = []; // Store cards for sorting logic
+let dragState = {
+    draggingEl: null,
+    startOrder: []
+};
 
 /**
  * Initialize the cards UI
@@ -34,6 +38,11 @@ export function initCardsUI(service) {
 
     if (sortSelect) {
         sortSelect.addEventListener('change', handleSort);
+    }
+
+    if (cardsContainer) {
+        cardsContainer.addEventListener('dragover', handleContainerDragOver);
+        cardsContainer.addEventListener('drop', handleContainerDrop);
     }
 }
 
@@ -64,6 +73,7 @@ async function handleSort() {
     if (!currentCards || currentCards.length === 0 || !cardService) return;
 
     const sortType = sortSelect.value;
+    if (sortType === 'custom') return;
     const updates = {};
     const sortedCards = [...currentCards];
 
@@ -123,6 +133,13 @@ function createCardElement(card) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card';
     cardDiv.setAttribute('data-card-id', card.id);
+    if (!isReadOnly) {
+        cardDiv.draggable = true;
+        cardDiv.addEventListener('dragstart', handleDragStart);
+        cardDiv.addEventListener('dragend', handleDragEnd);
+        cardDiv.addEventListener('dragover', handleCardDragOver);
+        cardDiv.addEventListener('drop', handleCardDrop);
+    }
 
     const imageHtml = card.imageUrl ?
         `<div class="card-image"><img src="${card.imageUrl}" alt="${card.title}" onerror="this.parentElement.style.display='none'"></div>` :
@@ -146,6 +163,103 @@ function createCardElement(card) {
         </div>
     `;
     return cardDiv;
+}
+
+function handleDragStart(event) {
+    if (isReadOnly) return;
+    if (event.target.closest('a, button, input, textarea, select, [contenteditable="true"]')) {
+        event.preventDefault();
+        return;
+    }
+
+    dragState.draggingEl = event.currentTarget;
+    dragState.startOrder = getCurrentOrderIds();
+    dragState.draggingEl.classList.add('dragging');
+    cardsContainer.classList.add('drag-active');
+
+    if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', dragState.draggingEl.dataset.cardId || '');
+    }
+}
+
+function handleDragEnd() {
+    if (!dragState.draggingEl) return;
+    dragState.draggingEl.classList.remove('dragging');
+    cardsContainer.classList.remove('drag-active');
+
+    const endOrder = getCurrentOrderIds();
+    const orderChanged = endOrder.length === dragState.startOrder.length &&
+        endOrder.some((id, idx) => id !== dragState.startOrder[idx]);
+
+    dragState.draggingEl = null;
+    dragState.startOrder = [];
+
+    if (orderChanged) {
+        persistOrderFromDom();
+    }
+}
+
+function handleCardDragOver(event) {
+    event.preventDefault();
+    if (!dragState.draggingEl) return;
+
+    const targetCard = event.currentTarget;
+    if (targetCard === dragState.draggingEl) return;
+
+    const rect = targetCard.getBoundingClientRect();
+    const shouldInsertAfter = (event.clientY - rect.top) > rect.height / 2;
+
+    const referenceNode = shouldInsertAfter ? targetCard.nextSibling : targetCard;
+    if (referenceNode !== dragState.draggingEl) {
+        cardsContainer.insertBefore(dragState.draggingEl, referenceNode);
+    }
+}
+
+function handleCardDrop(event) {
+    event.preventDefault();
+}
+
+function handleContainerDragOver(event) {
+    event.preventDefault();
+    if (!dragState.draggingEl) return;
+
+    const target = event.target;
+    if (target === cardsContainer && cardsContainer.lastElementChild !== dragState.draggingEl) {
+        cardsContainer.appendChild(dragState.draggingEl);
+    }
+}
+
+function handleContainerDrop(event) {
+    event.preventDefault();
+}
+
+function getCurrentOrderIds() {
+    return Array.from(cardsContainer.querySelectorAll('.card'))
+        .map((card) => card.getAttribute('data-card-id'))
+        .filter(Boolean);
+}
+
+async function persistOrderFromDom() {
+    if (!cardService || !currentCards || currentCards.length === 0) return;
+
+    const orderedIds = getCurrentOrderIds();
+    const updates = {};
+
+    orderedIds.forEach((cardId, index) => {
+        updates[cardId] = index * 1000;
+    });
+
+    if (sortSelect) {
+        sortSelect.value = 'custom';
+    }
+
+    try {
+        await cardService.updateCardRanks(updates);
+    } catch (error) {
+        console.error('Error updating card order:', error);
+        alert('Failed to update card order. Please try again.');
+    }
 }
 
 async function handleAddCard() {
