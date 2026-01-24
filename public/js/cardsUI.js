@@ -369,6 +369,7 @@ window.editCard = function (cardId) {
     originalTitle = titleEl.textContent;
     originalDescription = descEl.innerText;
 
+    card.draggable = false;
     titleEl.contentEditable = true;
     descEl.contentEditable = true;
     titleEl.focus();
@@ -445,6 +446,9 @@ window.exitEditMode = function (cardId) {
 
     titleEl.contentEditable = false;
     descEl.contentEditable = false;
+    if (!isReadOnly) {
+        card.draggable = true;
+    }
 
     if (btn) {
         btn.textContent = 'Edit';
