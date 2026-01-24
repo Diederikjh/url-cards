@@ -22,10 +22,10 @@ async function globalSetup() {
   let emulatorReady = false;
   let attempts = 0;
   const maxAttempts = 60; // 60 seconds
-  
+
   while (attempts < maxAttempts && !emulatorReady) {
     try {
-      const response = await fetch('http://localhost:8080/');
+      const response = await fetch('http://127.0.0.1:8080/');
       if (response.status === 404) {
         console.log('✓ Firebase Emulator is ready');
         emulatorReady = true;
@@ -39,7 +39,7 @@ async function globalSetup() {
   }
 
   if (!emulatorReady) {
-    console.warn('⚠️  Firebase Emulator not accessible at localhost:8080');
+    console.warn('⚠️  Firebase Emulator not accessible at 127.0.0.1:8080');
     console.warn('Make sure to start it with: firebase emulators:start --only firestore,auth');
     console.log('Tests may fail if emulator is not running');
   }
@@ -49,7 +49,7 @@ async function globalSetup() {
   let hostingReady = false;
   while (attempts < 30 && !hostingReady) {
     try {
-      const response = await fetch('http://localhost:5000/');
+      const response = await fetch('http://127.0.0.1:5000/');
       console.log('✓ Firebase Hosting server is ready');
       hostingReady = true;
       break;
@@ -61,7 +61,7 @@ async function globalSetup() {
   }
 
   if (!hostingReady) {
-    console.log('⚠️  Firebase Hosting not accessible at localhost:5000');
+    console.log('⚠️  Firebase Hosting not accessible at 127.0.0.1:5000');
     console.log('It will be started automatically when tests run');
   }
 

@@ -32,7 +32,7 @@ export default defineConfig({
 
   use: {
     // Base URL for all requests
-    baseURL: 'http://localhost:5000',
+    baseURL: 'http://127.0.0.1:5000',
 
     // Collect trace when retrying the failed test
     trace: 'retain-on-failure',

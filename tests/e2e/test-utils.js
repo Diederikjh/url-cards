@@ -22,12 +22,8 @@ const testUtils = {
         if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
           clearInterval(checkFirebase);
           // Configure Auth Emulator
-          try {
-            firebase.auth().useEmulator('http://localhost:9099');
-            console.log('[TEST] Auth Emulator configured');
-          } catch (e) {
-            console.log('[TEST] Auth Emulator already configured or error:', e.message);
-          }
+          // Auth Emulator is configured in firebase-init.js
+          console.log('[TEST] Waiting for Auth Emulator...');
         }
       }, 100);
 

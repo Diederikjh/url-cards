@@ -35,8 +35,8 @@ jobs:
         run: bash run-e2e-tests.sh --grep "diagnostic"
         env:
           CI: true
-          FIRESTORE_EMULATOR_HOST: localhost:8080
-          FIREBASE_AUTH_EMULATOR_HOST: localhost:9099
+          FIRESTORE_EMULATOR_HOST: 127.0.0.1:8080
+          FIREBASE_AUTH_EMULATOR_HOST: 127.0.0.1:9099
 
       - name: Upload test results
         if: always()

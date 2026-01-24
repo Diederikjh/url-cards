@@ -11,6 +11,14 @@
     <script src="/__/firebase/12.7.0/firebase-firestore-compat.js"></script>
     <script src="/__/firebase/12.7.0/firebase-functions-compat.js"></script>
     <script src="/__/firebase/init.js"></script>
+    <script>
+      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+        console.log('Running locally - connecting to emulators');
+        firebase.auth().useEmulator(`http://${location.hostname}:9099`);
+        firebase.firestore().useEmulator(location.hostname, 8080);
+        firebase.functions().useEmulator(location.hostname, 5001);
+      }
+    </script>
     
     <link rel="stylesheet" href="styles.css">
     <script src="config.js"></script>

@@ -72,8 +72,8 @@ echo ""
 echo ""
 echo ""
 echo "${GREEN}✓ Running E2E tests...${NC}"
-FIRESTORE_EMULATOR_HOST=localhost:8080 \
-FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8080 \
+FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 \
 npm run test:e2e -- "$@"
 
 EXIT_CODE=$?
