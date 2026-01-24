@@ -136,6 +136,9 @@ function handleDragStart(event) {
         event.preventDefault();
         return;
     }
+    if (editingCardId) {
+        window.cancelCard(editingCardId);
+    }
 
     dragState.draggingEl = event.currentTarget;
     dragState.startOrder = getCurrentOrderIds();
