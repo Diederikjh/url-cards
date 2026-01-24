@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>URL Cards</title>
-    
+
     <!-- Firebase SDK -->
     <script src="/__/firebase/12.7.0/firebase-app-compat.js"></script>
     <script src="/__/firebase/12.7.0/firebase-auth-compat.js"></script>
@@ -12,17 +13,27 @@
     <script src="/__/firebase/12.7.0/firebase-functions-compat.js"></script>
     <script src="/__/firebase/init.js"></script>
     <script>
-      if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
-        console.log('Running locally - connecting to emulators');
-        firebase.auth().useEmulator(`http://${location.hostname}:9099`);
-        firebase.firestore().useEmulator(location.hostname, 8080);
-        firebase.functions().useEmulator(location.hostname, 5001);
-      }
+        if (typeof firebase !== 'undefined' && firebase.apps.length === 0) {
+            console.log('Manually initializing Firebase app (fallback)');
+            firebase.initializeApp({
+                apiKey: "fake-api-key",
+                projectId: "url-cards",
+                authDomain: "url-cards.firebaseapp.com",
+            });
+        }
+
+        if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+            console.log('Running locally - connecting to emulators');
+            firebase.auth().useEmulator(`http://${location.hostname}:9099`);
+            firebase.firestore().useEmulator(location.hostname, 8080);
+            firebase.functions().useEmulator(location.hostname, 5001);
+        }
     </script>
-    
+
     <link rel="stylesheet" href="styles.css">
     <script src="config.js"></script>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -75,4 +86,5 @@
     </div>
     <script type="module" src="js/app.js"></script>
 </body>
+
 </html>
