@@ -26,7 +26,8 @@
             console.log('Running locally - connecting to emulators');
             firebase.auth().useEmulator(`http://${location.hostname}:9099`);
             firebase.firestore().useEmulator(location.hostname, 8080);
-            firebase.functions().useEmulator(location.hostname, 5001);
+            // Must use the same region as defined in the functions code
+            firebase.app().functions('africa-south1').useEmulator(location.hostname, 5001);
         }
     </script>
 
