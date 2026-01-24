@@ -35,7 +35,7 @@ export default defineConfig({
     baseURL: 'http://localhost:5000',
 
     // Collect trace when retrying the failed test
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
 
     // Screenshot on failure
     screenshot: 'only-on-failure',

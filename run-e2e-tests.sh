@@ -46,13 +46,24 @@ echo "${GREEN}✓ Starting Firebase Emulators (Firestore, Auth, Hosting)...${NC}
 firebase emulators:start --only firestore,auth,hosting &
 EMULATOR_PID=$!
 echo "Waiting for Emulators to start..."
-sleep 20
+TIMEOUT=60
+START_TIME=$(date +%s)
 
-# Check if emulators are running
-if ! kill -0 $EMULATOR_PID 2>/dev/null; then
-  echo "${RED}❌ Firebase Emulators failed to start${NC}"
-  exit 1
-fi
+while true; do
+  CURRENT_TIME=$(date +%s)
+  if (( CURRENT_TIME - START_TIME > TIMEOUT )); then
+    echo "${RED}❌ Emulators failed to start after $TIMEOUT seconds${NC}"
+    exit 1
+  fi
+
+  if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null && \
+     lsof -Pi :8080 -sTCP:LISTEN -t >/dev/null && \
+     lsof -Pi :9099 -sTCP:LISTEN -t >/dev/null; then
+    echo "${GREEN}✓ Emulators are ready!${NC}"
+    break
+  fi
+  sleep 1
+done
 
 echo ""
 echo "${GREEN}✓ Services started, running tests...${NC}"
@@ -63,7 +74,7 @@ echo ""
 echo "${GREEN}✓ Running E2E tests...${NC}"
 FIRESTORE_EMULATOR_HOST=localhost:8080 \
 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
-npm run test:e2e
+npm run test:e2e -- "$@"
 
 EXIT_CODE=$?
 echo ""

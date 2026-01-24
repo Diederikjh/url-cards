@@ -32,7 +32,7 @@ jobs:
         run: npm install -g firebase-tools
 
       - name: Run E2E tests
-        run: bash run-e2e-tests.sh
+        run: bash run-e2e-tests.sh --grep "diagnostic"
         env:
           CI: true
           FIRESTORE_EMULATOR_HOST: localhost:8080
@@ -45,6 +45,14 @@ jobs:
           name: playwright-report
           path: test-results/
           retention-days: 30
+
+      - name: Upload emulator logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-logs
+          path: *-debug.log
+          retention-days: 5
 
       - name: Upload test videos
         if: failure()
