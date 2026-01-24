@@ -32,7 +32,7 @@ export function initCardsUI(service) {
     cardsContainer = document.getElementById('cardsContainer');
 
     addCardBtn.addEventListener('click', handleAddCard);
-    urlInput.addEventListener('keypress', function (e) {
+    urlInput.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
             handleAddCard();
         }
