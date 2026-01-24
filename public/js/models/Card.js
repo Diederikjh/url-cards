@@ -3,7 +3,7 @@
  * This is a data-only class with no business logic
  */
 export class Card {
-    constructor(id, userId, boardId, url, title, description, imageUrl, createdAt, rank) {
+    constructor(id, userId, boardId, url, title, description, imageUrl, createdAt, rank, tagIds = [], tags = []) {
         this.id = id;
         this.userId = userId;
         this.boardId = boardId;
@@ -13,6 +13,8 @@ export class Card {
         this.imageUrl = imageUrl;
         this.createdAt = createdAt;
         this.rank = rank;
+        this.tagIds = tagIds;
+        this.tags = tags;
     }
 
     /**
@@ -31,7 +33,9 @@ export class Card {
             data.description,
             data.imageUrl || null,
             data.createdAt,
-            data.rank !== undefined ? data.rank : 0
+            data.rank !== undefined ? data.rank : 0,
+            Array.isArray(data.tagIds) ? data.tagIds : [],
+            Array.isArray(data.tags) ? data.tags : []
         );
     }
 
@@ -47,12 +51,21 @@ export class Card {
             title: this.title,
             description: this.description,
             createdAt: this.createdAt,
-            rank: this.rank
+            rank: this.rank,
+            tagIds: Array.isArray(this.tagIds) ? this.tagIds : [],
+            tags: Array.isArray(this.tags) ? this.tags : []
         };
 
         // Only include imageUrl if it's set
         if (this.imageUrl) {
             data.imageUrl = this.imageUrl;
+        }
+
+        if (!data.tagIds || data.tagIds.length === 0) {
+            delete data.tagIds;
+        }
+        if (!data.tags || data.tags.length === 0) {
+            delete data.tags;
         }
 
         return data;

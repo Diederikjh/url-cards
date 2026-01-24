@@ -4,12 +4,16 @@ import { initAuthUI, setupAuthStateListener } from './auth.js';
 import { initRouter, handleRouting, showLoginView } from './router.js';
 import { initBoardsUI, ensureDefaultBoard, loadBoard } from './boardsUI.js';
 import { initCardsUI, loadCards } from './cardsUI.js';
+import { initTagsUI } from './tagsUI.js';
 import { FirestoreBoardService } from './services/FirestoreBoardService.js';
 import { FirestoreCardService } from './services/FirestoreCardService.js';
+import { FirestoreTagService } from './services/FirestoreTagService.js';
+import { initTagStore, startTagStore, stopTagStore } from './tagStore.js';
 
 // Service instances
 let boardService;
 let cardService;
+let tagService;
 
 document.addEventListener('DOMContentLoaded', function() {
     // Wait for Firebase to initialize
@@ -29,11 +33,14 @@ function initializeApp() {
         // Create service instances
         boardService = new FirestoreBoardService(db, cardsCollection);
         cardService = new FirestoreCardService(db);
+        tagService = new FirestoreTagService(db);
 
         // Initialize UI modules with injected services
         initAuthUI();
         initBoardsUI(boardService);
-        initCardsUI(cardService);
+        initCardsUI(cardService, tagService);
+        initTagsUI(tagService);
+        initTagStore(tagService);
         initRouter(onBoardLoad, boardService, cardService);
 
         // Set up authentication state listener
@@ -45,10 +52,12 @@ function initializeApp() {
 
 function onAuthChanged(user) {
     if (user) {
+        startTagStore(user.uid);
         ensureDefaultBoard().then(() => {
             handleRouting();
         });
     } else {
+        stopTagStore();
         // Still call handleRouting to check for public routes
         handleRouting();
     }

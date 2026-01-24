@@ -38,7 +38,7 @@ export class FirestoreCardService extends CardService {
     }
 
     async createCard(userId, boardId, cardData) {
-        const docRef = await this.cardsCollection.add({
+        const payload = {
             userId,
             boardId,
             url: cardData.url,
@@ -47,7 +47,16 @@ export class FirestoreCardService extends CardService {
             imageUrl: cardData.imageUrl || null,
             createdAt: firebase.firestore.FieldValue.serverTimestamp(),
             rank: -Date.now() // Default to Newest First (smaller rank = earlier sort order)
-        });
+        };
+
+        if (Array.isArray(cardData.tagIds) && cardData.tagIds.length > 0) {
+            payload.tagIds = cardData.tagIds;
+        }
+        if (Array.isArray(cardData.tags) && cardData.tags.length > 0) {
+            payload.tags = cardData.tags;
+        }
+
+        const docRef = await this.cardsCollection.add(payload);
 
         return docRef.id;
     }

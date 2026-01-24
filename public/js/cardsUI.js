@@ -1,8 +1,11 @@
 // Cards management UI module
 import { getCurrentUser } from './auth.js';
 import { currentBoardId } from './boardsUI.js';
+import { onTagsUpdated, getTagByNameLower } from './tagStore.js';
+import { pickRandomTagColor, getReadableTextColor } from './tagPalette.js';
 
 let cardService = null;
+let tagService = null;
 let cardsUnsubscribe = null;
 let isReadOnly = false;
 
@@ -12,6 +15,9 @@ let addCardBtn;
 let sortSelect;
 let cardsContainer;
 let currentCards = []; // Store cards for sorting logic
+let tagMap = new Map();
+let tagNameMap = new Map();
+let tagsUnsubscribe = null;
 let dragState = {
     draggingEl: null,
     startOrder: [],
@@ -23,8 +29,9 @@ let dragState = {
  * Initialize the cards UI
  * @param {CardService} service - The card service to use
  */
-export function initCardsUI(service) {
+export function initCardsUI(service, tagSvc) {
     cardService = service;
+    tagService = tagSvc;
 
     urlInput = document.getElementById('urlInput');
     addCardBtn = document.getElementById('addCardBtn');
@@ -46,6 +53,15 @@ export function initCardsUI(service) {
         cardsContainer.addEventListener('dragover', handleContainerDragOver);
         cardsContainer.addEventListener('drop', handleContainerDrop);
     }
+
+    if (tagsUnsubscribe) {
+        tagsUnsubscribe();
+    }
+    tagsUnsubscribe = onTagsUpdated((snapshot) => {
+        tagMap = snapshot.tagsById;
+        tagNameMap = snapshot.tagsByNameLower;
+        refreshAllCardTags();
+    });
 }
 
 export function loadCards(boardId) {
@@ -98,6 +114,12 @@ function createCardElement(card) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card';
     cardDiv.setAttribute('data-card-id', card.id);
+    const tags = Array.isArray(card.tags) ? card.tags : [];
+    const tagIds = Array.isArray(card.tagIds) && card.tagIds.length > 0
+        ? card.tagIds
+        : tags.map(tag => tag.id).filter(Boolean);
+    cardDiv.dataset.tagIds = JSON.stringify(tagIds);
+    cardDiv.dataset.tags = JSON.stringify(tags);
     if (!isReadOnly) {
         cardDiv.draggable = true;
         cardDiv.addEventListener('dragstart', handleDragStart);
@@ -124,9 +146,11 @@ function createCardElement(card) {
             <div class="card-url"><a href="${card.url}" target="_blank" rel="noopener noreferrer">${card.url}</a></div>
             <div class="card-title" data-field="title">${card.title}</div>
             <div class="card-description" data-field="description">${card.description}</div>
+            <div class="card-tags" data-card-tags></div>
             ${actionsHtml}
         </div>
     `;
+    renderCardTags(cardDiv, getCardTags(cardDiv), false);
     return cardDiv;
 }
 
@@ -363,11 +387,15 @@ window.editCard = function (cardId) {
     const titleEl = card.querySelector('[data-field="title"]');
     const descEl = card.querySelector('[data-field="description"]');
     const editBtn = card.querySelector('.edit-btn');
+    const tagIds = getCardTagIds(card);
+    const tags = getCardTags(card);
 
     // Store original content
     editingCardId = cardId;
     originalTitle = titleEl.textContent;
     originalDescription = descEl.innerText;
+    const originalTagIds = [...tagIds];
+    const originalTags = tags.map(tag => ({ ...tag }));
 
     titleEl.contentEditable = true;
     descEl.contentEditable = true;
@@ -393,8 +421,10 @@ window.editCard = function (cardId) {
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('click', handleClickAway);
 
+    enableTagEditing(card, tags);
+
     // Store handlers for cleanup
-    editHandlers[cardId] = { handleKeyDown, handleClickAway };
+    editHandlers[cardId] = { handleKeyDown, handleClickAway, originalTagIds, originalTags };
 }
 
 window.saveCard = async function (cardId) {
@@ -406,11 +436,15 @@ window.saveCard = async function (cardId) {
 
     const newTitle = titleEl.textContent.trim();
     const newDescription = descEl.innerText.trim();
+    const newTagIds = getCardTagIds(card);
+    const newTags = getCardTags(card);
 
     try {
         await cardService.updateCard(cardId, {
             title: newTitle,
-            description: newDescription
+            description: newDescription,
+            tagIds: Array.isArray(newTagIds) ? newTagIds : [],
+            tags: Array.isArray(newTags) ? newTags : []
         });
 
         // Clear edit state
@@ -432,6 +466,14 @@ window.cancelCard = function (cardId) {
     if (originalTitle !== null) titleEl.textContent = originalTitle;
     if (originalDescription !== null) descEl.textContent = originalDescription;
 
+    if (editHandlers[cardId]?.originalTagIds) {
+        setCardTagIds(card, editHandlers[cardId].originalTagIds);
+    }
+    if (editHandlers[cardId]?.originalTags) {
+        setCardTags(card, editHandlers[cardId].originalTags);
+        renderCardTags(card, editHandlers[cardId].originalTags, false);
+    }
+
     window.exitEditMode(cardId);
 }
 
@@ -451,6 +493,8 @@ window.exitEditMode = function (cardId) {
         btn.onclick = () => window.editCard(cardId);
         btn.className = 'edit-btn';
     }
+
+    disableTagEditing(card);
 
     // Remove event listeners using stored handlers
     if (editHandlers[cardId]) {
@@ -474,6 +518,266 @@ window.deleteCard = async function (cardId) {
 
 export function setReadOnly(readOnly) {
     isReadOnly = readOnly;
+}
+
+function getCardTagIds(cardEl) {
+    if (!cardEl || !cardEl.dataset.tagIds) return [];
+    try {
+        const parsed = JSON.parse(cardEl.dataset.tagIds);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function setCardTagIds(cardEl, tagIds) {
+    const nextTagIds = Array.isArray(tagIds) ? tagIds : [];
+    cardEl.dataset.tagIds = JSON.stringify(nextTagIds);
+}
+
+function getCardTags(cardEl) {
+    if (!cardEl || !cardEl.dataset.tags) return [];
+    try {
+        const parsed = JSON.parse(cardEl.dataset.tags);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+        return [];
+    }
+}
+
+function setCardTags(cardEl, tags) {
+    const nextTags = Array.isArray(tags) ? tags : [];
+    const normalized = nextTags.map((tag) => ({
+        id: tag.id,
+        name: tag.name,
+        nameLower: tag.nameLower || (tag.name ? tag.name.toLowerCase() : ''),
+        color: tag.color
+    })).filter((tag) => tag.id && tag.name);
+    cardEl.dataset.tags = JSON.stringify(normalized);
+}
+
+function renderCardTags(cardEl, tags, editable) {
+    const container = cardEl.querySelector('[data-card-tags]');
+    if (!container) return;
+    let safeTags = Array.isArray(tags) ? tags : [];
+    if (safeTags.length === 0) {
+        const fallbackTags = getCardTagIds(cardEl)
+            .map((tagId) => tagMap.get(tagId))
+            .filter(Boolean);
+        if (fallbackTags.length > 0) {
+            safeTags = fallbackTags;
+        }
+    }
+
+    const chipsHtml = safeTags.map((tag) => {
+        if (!tag || !tag.name) return '';
+        const textColor = getReadableTextColor(tag.color);
+        const removeBtn = editable ? `<button class="tag-remove-btn" data-tag-remove="${tag.id}" aria-label="Remove tag">×</button>` : '';
+        return `
+            <span class="tag-chip" style="background:${tag.color}; color:${textColor};" data-tag-id="${tag.id}">
+                ${tag.name}
+                ${removeBtn}
+            </span>
+        `;
+    }).join('');
+
+    const inputHtml = editable ? `
+        <div class="tag-input-row">
+            <input type="text" class="tag-input" placeholder="Add tag..." data-tag-input />
+            <div class="tag-suggestions" data-tag-suggestions></div>
+        </div>
+    ` : '';
+
+    container.innerHTML = `
+        <div class="tag-chips">${chipsHtml || (editable ? '' : '<span class="tag-placeholder">No tags</span>')}</div>
+        ${inputHtml}
+    `;
+}
+
+function enableTagEditing(cardEl, tags) {
+    renderCardTags(cardEl, tags, true);
+    const input = cardEl.querySelector('[data-tag-input]');
+    const suggestions = cardEl.querySelector('[data-tag-suggestions]');
+    const removeButtons = cardEl.querySelectorAll('[data-tag-remove]');
+
+    const handleRemove = (e) => {
+        const tagId = e.currentTarget.getAttribute('data-tag-remove');
+        const nextTags = getCardTags(cardEl).filter(tag => tag.id !== tagId);
+        const nextTagIds = nextTags.map(tag => tag.id);
+        setCardTags(cardEl, nextTags);
+        setCardTagIds(cardEl, nextTagIds);
+        renderCardTags(cardEl, nextTags, true);
+        enableTagEditing(cardEl, nextTags);
+    };
+
+    removeButtons.forEach(btn => {
+        btn.addEventListener('click', handleRemove);
+    });
+
+    const handleInputKeydown = async (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            const raw = input.value.trim();
+            if (raw.length < 2 || raw.length > 40) {
+                alert('Tags should be 2-40 characters long.');
+                return;
+            }
+            const tag = await getOrCreateTag(raw);
+            if (tag) {
+                const nextTags = Array.from(new Map([...getCardTags(cardEl), tag].map(item => [item.id, item])).values());
+                const nextTagIds = nextTags.map(item => item.id);
+                setCardTags(cardEl, nextTags);
+                setCardTagIds(cardEl, nextTagIds);
+                renderCardTags(cardEl, nextTags, true);
+                enableTagEditing(cardEl, nextTags);
+                input.value = '';
+                updateSuggestions(input, suggestions, nextTags.map(item => item.id));
+            }
+        } else if (e.key === 'Escape') {
+            input.blur();
+        }
+    };
+
+    const handleInput = () => {
+        updateSuggestions(input, suggestions, getCardTagIds(cardEl));
+    };
+
+    if (input) {
+        input.addEventListener('keydown', handleInputKeydown);
+        input.addEventListener('input', handleInput);
+        updateSuggestions(input, suggestions, getCardTagIds(cardEl));
+    }
+
+    cardEl.dataset.tagEditorActive = 'true';
+}
+
+function disableTagEditing(cardEl) {
+    const tags = getCardTags(cardEl);
+    renderCardTags(cardEl, tags, false);
+    cardEl.dataset.tagEditorActive = 'false';
+}
+
+function updateSuggestions(input, suggestionsEl, selectedTagIds) {
+    if (!suggestionsEl) return;
+    const query = input.value.trim().toLowerCase();
+    if (!query) {
+        suggestionsEl.innerHTML = '';
+        return;
+    }
+
+    const matches = [];
+    tagMap.forEach((tag, tagId) => {
+        if (matches.length >= 6) return;
+        if (selectedTagIds.includes(tagId)) return;
+        if (tag.nameLower.startsWith(query)) {
+            matches.push(tag);
+        }
+    });
+
+    if (matches.length === 0) {
+        suggestionsEl.innerHTML = '';
+        return;
+    }
+
+    suggestionsEl.innerHTML = matches.map(tag => {
+        const textColor = getReadableTextColor(tag.color);
+        return `
+            <button class="tag-suggestion" data-tag-suggestion="${tag.id}" style="background:${tag.color}; color:${textColor};">
+                ${tag.name}
+            </button>
+        `;
+    }).join('');
+
+    suggestionsEl.querySelectorAll('[data-tag-suggestion]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const tagId = btn.getAttribute('data-tag-suggestion');
+            const tag = tagMap.get(tagId);
+            if (!tag) return;
+            const nextTags = Array.from(new Map([...getCardTags(input.closest('.card')), tag].map(item => [item.id, item])).values());
+            const nextTagIds = nextTags.map(item => item.id);
+            setCardTags(input.closest('.card'), nextTags);
+            setCardTagIds(input.closest('.card'), nextTagIds);
+            renderCardTags(input.closest('.card'), nextTags, true);
+            enableTagEditing(input.closest('.card'), nextTags);
+        });
+    });
+}
+
+async function getOrCreateTag(rawName) {
+    if (!tagService) return null;
+    const name = rawName.trim();
+    if (!name) return null;
+    const nameLower = name.toLowerCase();
+    const existing = tagNameMap.get(nameLower) || getTagByNameLower(nameLower);
+    if (existing) {
+        return existing;
+    }
+
+    const currentUser = getCurrentUser();
+    if (!currentUser) return null;
+
+    const color = pickRandomTagColor();
+    try {
+        const newTagId = await tagService.createTag(currentUser.uid, {
+            name,
+            nameLower,
+            color
+        });
+        return {
+            id: newTagId,
+            name,
+            nameLower,
+            color
+        };
+    } catch (error) {
+        console.error('Error creating tag:', error);
+        alert('Failed to create tag. Please try again.');
+        return null;
+    }
+}
+
+function refreshAllCardTags() {
+    if (!cardsContainer) return;
+    cardsContainer.querySelectorAll('.card').forEach((cardEl) => {
+        const tags = getCardTags(cardEl);
+        const editable = cardEl.dataset.tagEditorActive === 'true';
+        renderCardTags(cardEl, tags, editable);
+        if (editable) {
+            enableTagEditing(cardEl, tags);
+        }
+        maybeBackfillCardTags(cardEl);
+    });
+}
+
+function maybeBackfillCardTags(cardEl) {
+    if (!cardService) return;
+    if (cardEl.dataset.tagsBackfilled === 'true') return;
+    const tagIds = getCardTagIds(cardEl);
+    const tags = getCardTags(cardEl);
+    let nextTags = tags;
+    let nextTagIds = tagIds;
+
+    if (tags.length === 0 && tagIds.length > 0) {
+        const derived = tagIds.map((tagId) => tagMap.get(tagId)).filter(Boolean);
+        if (derived.length !== tagIds.length) return;
+        nextTags = derived;
+        setCardTags(cardEl, nextTags);
+    }
+
+    if (tagIds.length === 0 && tags.length > 0) {
+        nextTagIds = tags.map((tag) => tag.id).filter(Boolean);
+        setCardTagIds(cardEl, nextTagIds);
+    }
+
+    if (nextTags.length === 0 && nextTagIds.length === 0) return;
+
+    cardEl.dataset.tagsBackfilled = 'true';
+    const cardId = cardEl.getAttribute('data-card-id');
+    if (cardId) {
+        cardService.updateCard(cardId, { tags: nextTags, tagIds: nextTagIds }).catch((error) => {
+            console.error('Failed to backfill tags for card:', error);
+        });
+    }
 }
 
 function compareCards(a, b, sortType) {

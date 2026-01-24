@@ -10,15 +10,44 @@ let loginBtn;
 let logoutBtn;
 let userInfo;
 let userName;
+let userMenuBtn;
+let userMenu;
+let manageTagsBtn;
 
 export function initAuthUI() {
     loginBtn = document.getElementById('loginBtn');
     logoutBtn = document.getElementById('logoutBtn');
     userInfo = document.getElementById('userInfo');
     userName = document.getElementById('userName');
+    userMenuBtn = document.getElementById('userMenuBtn');
+    userMenu = document.getElementById('userMenu');
+    manageTagsBtn = document.getElementById('manageTagsBtn');
 
     loginBtn.addEventListener('click', handleLogin);
     logoutBtn.addEventListener('click', handleLogout);
+
+    if (userMenuBtn && userMenu) {
+        userMenuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = userMenu.style.display === 'block';
+            userMenu.style.display = isOpen ? 'none' : 'block';
+        });
+        document.addEventListener('click', (e) => {
+            if (!userMenu.contains(e.target) && e.target !== userMenuBtn) {
+                userMenu.style.display = 'none';
+            }
+        });
+    }
+
+    if (manageTagsBtn) {
+        manageTagsBtn.addEventListener('click', async () => {
+            const { navigateToTags } = await import('./router.js');
+            navigateToTags();
+            if (userMenu) {
+                userMenu.style.display = 'none';
+            }
+        });
+    }
 }
 
 export function setupAuthStateListener(onAuthChanged) {
@@ -44,6 +73,9 @@ function updateUIForAuth(user) {
     } else {
         loginBtn.style.display = 'block';
         userInfo.style.display = 'none';
+        if (userMenu) {
+            userMenu.style.display = 'none';
+        }
     }
 }
 

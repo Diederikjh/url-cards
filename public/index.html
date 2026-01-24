@@ -43,7 +43,13 @@
                 <div id="authContainer" class="auth-container">
                     <div id="userInfo" class="user-info" style="display: none;">
                         <span id="userName"></span>
-                        <button id="logoutBtn" class="logout-btn">Logout</button>
+                        <div class="user-menu">
+                            <button id="userMenuBtn" class="menu-btn" aria-label="Open user menu">...</button>
+                            <div id="userMenu" class="menu-panel" style="display: none;">
+                                <button id="manageTagsBtn" class="menu-item">Manage Tags</button>
+                                <button id="logoutBtn" class="menu-item">Logout</button>
+                            </div>
+                        </div>
                     </div>
                     <button id="loginBtn" class="login-btn" style="display: none;">Sign in with Google</button>
                 </div>
@@ -57,6 +63,21 @@
                 <button id="createBoardBtn" class="create-board-btn">Create New Board</button>
             </div>
             <div id="boardsList" class="boards-list"></div>
+        </div>
+
+        <!-- Tags Management View -->
+        <div id="tagsView" style="display: none;">
+            <div class="tags-header">
+                <h2>Manage Tags</h2>
+                <div class="tags-controls">
+                    <input type="text" id="tagSearchInput" placeholder="Search tags..." />
+                    <button id="createTagBtn" class="create-tag-btn">New Tag</button>
+                </div>
+            </div>
+            <div id="tagsEmptyState" class="tags-empty" style="display: none;">
+                No tags yet. Create one to get started.
+            </div>
+            <div id="tagsList" class="tags-list"></div>
         </div>
 
         <!-- Board Detail View -->

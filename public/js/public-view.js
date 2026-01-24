@@ -1,7 +1,6 @@
 // Public board view module
 let boardService;
 let cardService;
-
 let publicCardsUnsubscribe = null;
 
 // DOM elements
@@ -81,6 +80,7 @@ function loadPublicCards(boardId) {
 function createPublicCardElement(card) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card public-card';
+    cardDiv.dataset.tags = JSON.stringify(Array.isArray(card.tags) ? card.tags : []);
 
     const imageHtml = card.imageUrl ?
         `<div class="card-image"><img src="${card.imageUrl}" alt="${card.title}" onerror="this.parentElement.style.display='none'"></div>` :
@@ -92,9 +92,44 @@ function createPublicCardElement(card) {
             <div class="card-url"><a href="${card.url}" target="_blank" rel="noopener noreferrer">${card.url}</a></div>
             <div class="card-title">${card.title}</div>
             <div class="card-description">${card.description}</div>
+            <div class="card-tags" data-public-card-tags></div>
         </div>
     `;
+    renderPublicTags(cardDiv);
     return cardDiv;
+}
+
+function renderPublicTags(cardEl) {
+    const container = cardEl.querySelector('[data-public-card-tags]');
+    if (!container) return;
+    let tags = [];
+    try {
+        tags = JSON.parse(cardEl.dataset.tags || '[]');
+    } catch (_) {
+        tags = [];
+    }
+
+    const chips = tags.map((tag) => {
+        if (!tag || !tag.name) return '';
+        return `
+            <span class="tag-chip" style="background:${tag.color}; color:${getTextColor(tag.color)};">
+                ${tag.name}
+            </span>
+        `;
+    }).join('');
+
+    container.innerHTML = chips || '<span class="tag-placeholder">No tags</span>';
+}
+
+function getTextColor(hexColor) {
+    if (!hexColor || typeof hexColor !== 'string') return '#1f2933';
+    const hex = hexColor.replace('#', '');
+    if (hex.length !== 6) return '#1f2933';
+    const r = parseInt(hex.slice(0, 2), 16) / 255;
+    const g = parseInt(hex.slice(2, 4), 16) / 255;
+    const b = parseInt(hex.slice(4, 6), 16) / 255;
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.6 ? '#1f2933' : '#f9fafb';
 }
 
 export function unsubscribePublicCards() {

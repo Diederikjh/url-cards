@@ -33,5 +33,17 @@ service cloud.firestore {
       // Allow update/delete if user is authenticated and card belongs to them
       allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
     }
+
+    // Tags collection - users can manage their own tags
+    match /tags/{tagId} {
+      // Allow read if user is authenticated and tag belongs to them
+      allow read: if request.auth != null && request.auth.uid == resource.data.userId;
+
+      // Allow create if user is authenticated and userId matches auth
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+
+      // Allow update/delete if user is authenticated and tag belongs to them
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.userId;
+    }
   }
 }

@@ -1,11 +1,13 @@
 // Routing module
 import { getCurrentUser } from './auth.js';
 import { loadBoards } from './boardsUI.js';
+import { showTagsView } from './tagsUI.js';
 import { initPublicUI, loadPublicBoard, unsubscribePublicCards } from './public-view.js';
 
 let boardsView;
 let boardView;
 let publicView;
+let tagsView;
 let onBoardLoadCallback;
 
 /**
@@ -18,6 +20,7 @@ export function initRouter(onBoardLoad, boardService, cardService) {
     boardsView = document.getElementById('boardsView');
     boardView = document.getElementById('boardView');
     publicView = document.getElementById('publicView');
+    tagsView = document.getElementById('tagsView');
     onBoardLoadCallback = onBoardLoad;
 
     initPublicUI(boardService, cardService);
@@ -48,6 +51,9 @@ export function handleRouting() {
     console.log('User authenticated, handling private routes');
     if (!hash || hash === '#boards') {
         showView('boards');
+    } else if (hash === '#tags') {
+        showView('tags');
+        showTagsView();
     } else if (hash.startsWith('#board/')) {
         const boardId = hash.substring(7);
         showView('board');
@@ -62,10 +68,18 @@ function showView(view) {
     boardsView.style.display = 'none';
     boardView.style.display = 'none';
     publicView.style.display = 'none';
+    if (tagsView) {
+        tagsView.style.display = 'none';
+    }
 
     if (view === 'boards') {
         boardsView.style.display = 'block';
         loadBoards();
+        unsubscribePublicCards();
+    } else if (view === 'tags') {
+        if (tagsView) {
+            tagsView.style.display = 'block';
+        }
         unsubscribePublicCards();
     } else if (view === 'board') {
         boardView.style.display = 'block';
@@ -83,8 +97,15 @@ export function navigateToBoard(boardId) {
     window.location.hash = `#board/${boardId}`;
 }
 
+export function navigateToTags() {
+    window.location.hash = '#tags';
+}
+
 export function showLoginView() {
     boardsView.style.display = 'none';
     boardView.style.display = 'none';
     publicView.style.display = 'none';
+    if (tagsView) {
+        tagsView.style.display = 'none';
+    }
 }
