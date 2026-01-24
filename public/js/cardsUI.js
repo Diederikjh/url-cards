@@ -76,7 +76,6 @@ async function handleSort() {
 
     const sortType = sortSelect.value;
     if (sortType === 'custom') return;
-    const updates = {};
     const sortedCards = [...currentCards];
 
     // Disable select while sorting
@@ -84,44 +83,8 @@ async function handleSort() {
 
     try {
         // Sort in memory first
-        sortedCards.sort((a, b) => {
-            switch (sortType) {
-                case 'created_desc':
-                    // Compare timestamps descending
-                    return b.createdAt.toMillis() - a.createdAt.toMillis();
-                case 'created_asc':
-                    // Compare timestamps ascending
-                    return a.createdAt.toMillis() - b.createdAt.toMillis();
-                case 'name_asc':
-                    return (a.title || '').localeCompare(b.title || '');
-                case 'name_desc':
-                    return (b.title || '').localeCompare(a.title || '');
-                default:
-                    return 0;
-            }
-        });
-
-        // Calculate new ranks
-        sortedCards.forEach((card, index) => {
-            let newRank;
-            if (sortType === 'created_desc') {
-                // Default: -timestamp
-                newRank = -card.createdAt.toMillis();
-            } else if (sortType === 'created_asc') {
-                // Oldest first: timestamp
-                newRank = card.createdAt.toMillis();
-            } else {
-                // Name/Custom: index * 1000
-                newRank = index * 1000;
-            }
-
-            // Only update if rank is different (optimization)
-            // But for timestamps, we usually want to reset to exact timestamp mapping if switching back to Created
-            // For custom sort (Name), we definitely need to reindex.
-            updates[card.id] = newRank;
-        });
-
-        await cardService.updateCardRanks(updates);
+        sortedCards.sort((a, b) => compareCards(a, b, sortType));
+        await applyRankUpdates(buildRankUpdatesForSort(sortedCards, sortType));
 
     } catch (error) {
         console.error('Error sorting cards:', error);
@@ -295,18 +258,13 @@ async function persistOrderFromDom() {
     if (!cardService || !currentCards || currentCards.length === 0) return;
 
     const orderedIds = getCurrentOrderIds();
-    const updates = {};
-
-    orderedIds.forEach((cardId, index) => {
-        updates[cardId] = index * 1000;
-    });
 
     if (sortSelect) {
         sortSelect.value = 'custom';
     }
 
     try {
-        await cardService.updateCardRanks(updates);
+        await applyRankUpdates(buildRankUpdatesForOrder(orderedIds));
     } catch (error) {
         console.error('Error updating card order:', error);
         alert('Failed to update card order. Please try again.');
@@ -516,4 +474,50 @@ window.deleteCard = async function (cardId) {
 
 export function setReadOnly(readOnly) {
     isReadOnly = readOnly;
+}
+
+function compareCards(a, b, sortType) {
+    switch (sortType) {
+        case 'created_desc':
+            return b.createdAt.toMillis() - a.createdAt.toMillis();
+        case 'created_asc':
+            return a.createdAt.toMillis() - b.createdAt.toMillis();
+        case 'name_asc':
+            return (a.title || '').localeCompare(b.title || '');
+        case 'name_desc':
+            return (b.title || '').localeCompare(a.title || '');
+        default:
+            return 0;
+    }
+}
+
+function buildRankUpdatesForSort(cards, sortType) {
+    const updates = {};
+    cards.forEach((card, index) => {
+        updates[card.id] = rankForSort(card, index, sortType);
+    });
+    return updates;
+}
+
+function rankForSort(card, index, sortType) {
+    if (sortType === 'created_desc') {
+        return -card.createdAt.toMillis();
+    }
+    if (sortType === 'created_asc') {
+        return card.createdAt.toMillis();
+    }
+    return index * 1000;
+}
+
+function buildRankUpdatesForOrder(orderedIds) {
+    const updates = {};
+    orderedIds.forEach((cardId, index) => {
+        updates[cardId] = index * 1000;
+    });
+    return updates;
+}
+
+async function applyRankUpdates(updates) {
+    if (!updates || Object.keys(updates).length === 0) return;
+    await cardService.updateCardRanks(updates);
 }
