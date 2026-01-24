@@ -4,6 +4,7 @@
  */
 
 import testUtils from './test-utils.js';
+import { expect } from '@playwright/test';
 
 const cardUtils = {
   /**
@@ -14,7 +15,7 @@ const cardUtils = {
    */
   async addCard(page, url = 'https://example.com', boardName = null) {
     console.log(`[TEST] Adding card with URL: "${url}"`);
-    
+
     // Check if board view is visible, if not navigate to first board
     const isBoardViewVisible = await page.evaluate(() => {
       const boardView = document.getElementById('boardView');
@@ -23,7 +24,7 @@ const cardUtils = {
 
     if (!isBoardViewVisible) {
       console.log('[TEST] Board view not visible, navigating to board');
-      
+
       // If we know the board name, click on it specifically
       if (boardName) {
         await page.click(`text="${boardName}"`, { timeout: 5000 });
@@ -33,7 +34,7 @@ const cardUtils = {
         await page.click('.board-item', { timeout: 5000 });
         console.log('[TEST] Clicked on first board');
       }
-      
+
       // Wait for board view to become visible
       await page.waitForFunction(() => {
         const boardView = document.getElementById('boardView');
@@ -42,10 +43,10 @@ const cardUtils = {
     }
 
     console.log('[TEST] Board view is visible');
-    
+
     // Wait a bit for the view to fully render
     await page.waitForTimeout(500);
-    
+
     // Wait for add card input to be visible
     await page.waitForSelector('#urlInput', { state: 'visible', timeout: 10000 });
     console.log('[TEST] URL input found and visible');
@@ -60,8 +61,12 @@ const cardUtils = {
     await addBtn.click({ timeout: 5000 });
     console.log('[TEST] Add card button clicked');
 
-    // Wait for card to appear
-    await page.waitForTimeout(1500);
+    // Wait for "Adding..." state to finish
+    await expect(addBtn).toHaveText('Add Card', { timeout: 15000 });
+    console.log('[TEST] Card addition completed (UI state reset)');
+
+    // Small stability wait
+    await page.waitForTimeout(500);
   },
 
   /**
@@ -71,7 +76,7 @@ const cardUtils = {
    */
   async getCards(page) {
     console.log('[TEST] Getting all cards on board');
-    
+
     const cards = await page.locator('[class*="card"]').allTextContents();
     console.log(`[TEST] Found ${cards.length} cards`);
     return cards;
@@ -85,7 +90,7 @@ const cardUtils = {
    */
   async cardExists(page, url) {
     console.log(`[TEST] Searching for card with URL: "${url}"`);
-    
+
     const cardLocator = page.locator(`text="${url}"`).first();
     try {
       await cardLocator.waitFor({ state: 'visible', timeout: 3000 });
@@ -105,13 +110,13 @@ const cardUtils = {
    */
   async editCardNote(page, cardUrl, newNote) {
     console.log(`[TEST] Editing card note for URL: "${cardUrl}"`);
-    
+
     // Find the card that contains this URL link, then find the edit button within it
-    const card = page.locator('.card').filter({ 
-      has: page.getByRole('link', { name: cardUrl }) 
+    const card = page.locator('.card').filter({
+      has: page.getByRole('link', { name: cardUrl })
     }).first();
     const editBtn = card.locator('.edit-btn').first();
-    
+
     await editBtn.waitFor({ state: 'visible', timeout: 5000 });
     await editBtn.click({ timeout: 5000 });
     console.log('[TEST] Edit button clicked');
@@ -119,7 +124,7 @@ const cardUtils = {
     // Wait for description field to become editable (contentEditable div)
     const descDiv = card.locator('[data-field="description"]').first();
     await descDiv.waitFor({ state: 'visible', timeout: 5000 });
-    
+
     // Clear and fill the description field
     await descDiv.click();
     await descDiv.fill('');
@@ -141,22 +146,22 @@ const cardUtils = {
    */
   async deleteCard(page, cardUrl) {
     console.log(`[TEST] Deleting card with URL: "${cardUrl}"`);
-    
+
     // Find the card that contains this URL link, then find the delete button within it
-    const card = page.locator('.card').filter({ 
-      has: page.getByRole('link', { name: cardUrl }) 
+    const card = page.locator('.card').filter({
+      has: page.getByRole('link', { name: cardUrl })
     }).first();
     const deleteBtn = card.locator('.delete-btn').first();
-    
+
     await deleteBtn.waitFor({ state: 'visible', timeout: 5000 });
-    
+
     // Set up dialog handler BEFORE clicking the button
     page.once('dialog', dialog => {
       console.log(`[TEST] Delete confirm dialog: "${dialog.message()}"`);
       dialog.accept();
       console.log('[TEST] Delete confirmed');
     });
-    
+
     await deleteBtn.click({ timeout: 5000 });
     console.log('[TEST] Delete button clicked');
 
