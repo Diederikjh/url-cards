@@ -367,7 +367,7 @@ window.editCard = function (cardId) {
     // Store original content
     editingCardId = cardId;
     originalTitle = titleEl.textContent;
-    originalDescription = descEl.textContent;
+    originalDescription = descEl.innerText;
 
     titleEl.contentEditable = true;
     descEl.contentEditable = true;
@@ -405,7 +405,7 @@ window.saveCard = async function (cardId) {
     const descEl = card.querySelector('[data-field="description"]');
 
     const newTitle = titleEl.textContent.trim();
-    const newDescription = descEl.textContent.trim();
+    const newDescription = descEl.innerText.trim();
 
     try {
         await cardService.updateCard(cardId, {

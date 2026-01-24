@@ -349,6 +349,7 @@ header h1 {
     color: #555;
     font-size: 0.95rem;
     line-height: 1.5;
+    white-space: pre-wrap;
 }
 
 /* Card actions buttons */
