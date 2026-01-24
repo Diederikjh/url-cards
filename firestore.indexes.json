@@ -55,6 +55,24 @@
           "order": "ASCENDING"
         },
         {
+          "fieldPath": "userId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "rank",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "cards",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "boardId",
+          "order": "ASCENDING"
+        },
+        {
           "fieldPath": "rank",
           "order": "ASCENDING"
         }
