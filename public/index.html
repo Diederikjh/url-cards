@@ -71,6 +71,16 @@
             <div id="addCardSection" class="add-card-section">
                 <input type="url" id="urlInput" placeholder="Enter URL..." />
                 <button id="addCardBtn">Add Card</button>
+                <div class="sort-controls"
+                    style="margin-left: 20px; display: inline-flex; align-items: center; gap: 8px;">
+                    <label for="sortSelect">Sort by:</label>
+                    <select id="sortSelect" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
+                        <option value="created_desc">Newest First</option>
+                        <option value="created_asc">Oldest First</option>
+                        <option value="name_asc">Name (A-Z)</option>
+                        <option value="name_desc">Name (Z-A)</option>
+                    </select>
+                </div>
             </div>
             <main id="cardsContainer" class="cards-container"></main>
         </div>

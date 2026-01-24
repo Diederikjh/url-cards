@@ -3,7 +3,7 @@
  * This is a data-only class with no business logic
  */
 export class Card {
-    constructor(id, userId, boardId, url, title, description, imageUrl, createdAt) {
+    constructor(id, userId, boardId, url, title, description, imageUrl, createdAt, rank) {
         this.id = id;
         this.userId = userId;
         this.boardId = boardId;
@@ -12,6 +12,7 @@ export class Card {
         this.description = description;
         this.imageUrl = imageUrl;
         this.createdAt = createdAt;
+        this.rank = rank;
     }
 
     /**
@@ -29,7 +30,8 @@ export class Card {
             data.title,
             data.description,
             data.imageUrl || null,
-            data.createdAt
+            data.createdAt,
+            data.rank !== undefined ? data.rank : 0
         );
     }
 
@@ -44,7 +46,8 @@ export class Card {
             url: this.url,
             title: this.title,
             description: this.description,
-            createdAt: this.createdAt
+            createdAt: this.createdAt,
+            rank: this.rank
         };
 
         // Only include imageUrl if it's set

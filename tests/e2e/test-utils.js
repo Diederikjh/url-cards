@@ -11,24 +11,35 @@ const testUtils = {
    * @param {Page} page - Playwright page object
    * @param {BrowserContext} context - Playwright browser context
    */
-  async setupAuth(page, context) {
+  /**
+   * Set up Firebase Auth before navigation
+   * This intercepts Firebase SDK loading and configures emulator
+   * @param {Page} page - Playwright page object
+   * @param {BrowserContext} context - Playwright browser context
+   * @param {Object} options - Optional: { email, uid } to use stable credentials
+   */
+  async setupAuth(page, context, options = {}) {
+    const email = options.email || `test-${Date.now()}@example.com`;
+    const uid = options.uid || 'test-user-' + Date.now();
+
     // Inject Firebase configuration before page loads
-    await page.addInitScript(() => {
-      window.__TEST_EMAIL__ = `test-${Date.now()}@example.com`;
-      window.__TEST_UID__ = 'test-user-' + Date.now();
+    await page.addInitScript(({ email, uid }) => {
+      window.__TEST_EMAIL__ = email;
+      window.__TEST_UID__ = uid;
 
       // Check if Firebase is ready
       const checkFirebase = setInterval(() => {
         if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
           clearInterval(checkFirebase);
           // Configure Auth Emulator
-          // Auth Emulator is configured in firebase-init.js
           console.log('[TEST] Waiting for Auth Emulator...');
         }
       }, 100);
 
       setTimeout(() => clearInterval(checkFirebase), 10000);
-    });
+    }, { email, uid });
+
+    return { email, uid };
   },
 
   /**
@@ -49,6 +60,15 @@ const testUtils = {
     await page.evaluate(async () => {
       const email = window.__TEST_EMAIL__;
       const password = 'TestPassword123!';
+
+      // Small delay to let Firebase Auth initialize from session if possible
+      await new Promise(r => setTimeout(r, 500));
+
+      const currentUser = firebase.auth().currentUser;
+      if (currentUser && currentUser.email === email) {
+        console.log('[TEST] User already authenticated:', email);
+        return;
+      }
 
       try {
         // Try to create user

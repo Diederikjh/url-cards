@@ -9,7 +9,9 @@ let isReadOnly = false;
 // DOM elements
 let urlInput;
 let addCardBtn;
+let sortSelect;
 let cardsContainer;
+let currentCards = []; // Store cards for sorting logic
 
 /**
  * Initialize the cards UI
@@ -20,14 +22,19 @@ export function initCardsUI(service) {
 
     urlInput = document.getElementById('urlInput');
     addCardBtn = document.getElementById('addCardBtn');
+    sortSelect = document.getElementById('sortSelect');
     cardsContainer = document.getElementById('cardsContainer');
 
     addCardBtn.addEventListener('click', handleAddCard);
-    urlInput.addEventListener('keypress', function(e) {
+    urlInput.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') {
             handleAddCard();
         }
     });
+
+    if (sortSelect) {
+        sortSelect.addEventListener('change', handleSort);
+    }
 }
 
 export function loadCards(boardId) {
@@ -44,12 +51,72 @@ export function loadCards(boardId) {
     }
 
     cardsUnsubscribe = cardService.watchCards(currentUser.uid, boardId, (cards) => {
+        currentCards = cards; // Store for sorting
         cardsContainer.innerHTML = '';
         cards.forEach((card) => {
             const cardElement = createCardElement(card);
             cardsContainer.appendChild(cardElement);
         });
     });
+}
+
+async function handleSort() {
+    if (!currentCards || currentCards.length === 0 || !cardService) return;
+
+    const sortType = sortSelect.value;
+    const updates = {};
+    const sortedCards = [...currentCards];
+
+    // Disable select while sorting
+    sortSelect.disabled = true;
+
+    try {
+        // Sort in memory first
+        sortedCards.sort((a, b) => {
+            switch (sortType) {
+                case 'created_desc':
+                    // Compare timestamps descending
+                    return b.createdAt.toMillis() - a.createdAt.toMillis();
+                case 'created_asc':
+                    // Compare timestamps ascending
+                    return a.createdAt.toMillis() - b.createdAt.toMillis();
+                case 'name_asc':
+                    return (a.title || '').localeCompare(b.title || '');
+                case 'name_desc':
+                    return (b.title || '').localeCompare(a.title || '');
+                default:
+                    return 0;
+            }
+        });
+
+        // Calculate new ranks
+        sortedCards.forEach((card, index) => {
+            let newRank;
+            if (sortType === 'created_desc') {
+                // Default: -timestamp
+                newRank = -card.createdAt.toMillis();
+            } else if (sortType === 'created_asc') {
+                // Oldest first: timestamp
+                newRank = card.createdAt.toMillis();
+            } else {
+                // Name/Custom: index * 1000
+                newRank = index * 1000;
+            }
+
+            // Only update if rank is different (optimization)
+            // But for timestamps, we usually want to reset to exact timestamp mapping if switching back to Created
+            // For custom sort (Name), we definitely need to reindex.
+            updates[card.id] = newRank;
+        });
+
+        await cardService.updateCardRanks(updates);
+
+    } catch (error) {
+        console.error('Error sorting cards:', error);
+        alert('Failed to update sort order.');
+    } finally {
+        sortSelect.disabled = false;
+    }
 }
 
 function createCardElement(card) {
@@ -166,7 +233,7 @@ let originalDescription = null;
 let editHandlers = {}; // Store handlers by cardId
 
 // Export card editing functions to window for onclick handlers
-window.editCard = function(cardId) {
+window.editCard = function (cardId) {
     const card = document.querySelector(`[data-card-id="${cardId}"]`);
     if (!card) return;
 
@@ -207,7 +274,7 @@ window.editCard = function(cardId) {
     editHandlers[cardId] = { handleKeyDown, handleClickAway };
 }
 
-window.saveCard = async function(cardId) {
+window.saveCard = async function (cardId) {
     const card = document.querySelector(`[data-card-id="${cardId}"]`);
     if (!card || !cardService) return;
 
@@ -231,7 +298,7 @@ window.saveCard = async function(cardId) {
     }
 }
 
-window.cancelCard = function(cardId) {
+window.cancelCard = function (cardId) {
     const card = document.querySelector(`[data-card-id="${cardId}"]`);
     if (!card) return;
 
@@ -245,7 +312,7 @@ window.cancelCard = function(cardId) {
     window.exitEditMode(cardId);
 }
 
-window.exitEditMode = function(cardId) {
+window.exitEditMode = function (cardId) {
     const card = document.querySelector(`[data-card-id="${cardId}"]`);
     if (!card) return;
 
@@ -271,7 +338,7 @@ window.exitEditMode = function(cardId) {
     editingCardId = null;
 }
 
-window.deleteCard = async function(cardId) {
+window.deleteCard = async function (cardId) {
     if (confirm('Are you sure you want to delete this card?')) {
         try {
             await cardService.deleteCard(cardId);

@@ -16,7 +16,7 @@ export class FirestoreCardService extends CardService {
         const snapshot = await this.cardsCollection
             .where('userId', '==', userId)
             .where('boardId', '==', boardId)
-            .orderBy('createdAt', 'desc')
+            .orderBy('rank', 'asc')
             .get();
 
         return snapshot.docs.map(doc => Card.fromFirestore(doc.id, doc.data()));
@@ -45,7 +45,8 @@ export class FirestoreCardService extends CardService {
             title: cardData.title,
             description: cardData.description,
             imageUrl: cardData.imageUrl || null,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            rank: -Date.now() // Default to Newest First (smaller rank = earlier sort order)
         });
 
         return docRef.id;
@@ -53,6 +54,17 @@ export class FirestoreCardService extends CardService {
 
     async updateCard(cardId, updates) {
         await this.cardsCollection.doc(cardId).update(updates);
+    }
+
+    async updateCardRanks(updates) {
+        const batch = this.db.batch();
+
+        for (const [cardId, rank] of Object.entries(updates)) {
+            const ref = this.cardsCollection.doc(cardId);
+            batch.update(ref, { rank });
+        }
+
+        await batch.commit();
     }
 
     async deleteCard(cardId) {
@@ -63,7 +75,7 @@ export class FirestoreCardService extends CardService {
         return this.cardsCollection
             .where('userId', '==', userId)
             .where('boardId', '==', boardId)
-            .orderBy('createdAt', 'desc')
+            .orderBy('rank', 'asc')
             .onSnapshot((snapshot) => {
                 const cards = snapshot.docs.map(doc => Card.fromFirestore(doc.id, doc.data()));
                 callback(cards);
@@ -73,7 +85,7 @@ export class FirestoreCardService extends CardService {
     async getPublicBoardCards(boardId) {
         const snapshot = await this.cardsCollection
             .where('boardId', '==', boardId)
-            .orderBy('createdAt', 'desc')
+            .orderBy('rank', 'asc')
             .get();
 
         return snapshot.docs.map(doc => Card.fromFirestore(doc.id, doc.data()));
@@ -82,7 +94,7 @@ export class FirestoreCardService extends CardService {
     watchPublicBoardCards(boardId, callback) {
         return this.cardsCollection
             .where('boardId', '==', boardId)
-            .orderBy('createdAt', 'desc')
+            .orderBy('rank', 'asc')
             .onSnapshot((snapshot) => {
                 const cards = snapshot.docs.map(doc => Card.fromFirestore(doc.id, doc.data()));
                 callback(cards);
