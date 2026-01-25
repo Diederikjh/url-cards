@@ -185,6 +185,11 @@ function updateSuggestions(input, suggestionsEl, getSuggestions, selectedTagIds,
     const query = input.value.trim().toLowerCase();
     if (!query) {
         suggestionsEl.innerHTML = '';
+        if (input.closest('.card')) {
+            const cardEl = input.closest('.card');
+            cardEl.dataset.tagSuggestionsDismissed = 'false';
+            cardEl._tagSuggestions = [];
+        }
         return [];
     }
 
@@ -192,6 +197,11 @@ function updateSuggestions(input, suggestionsEl, getSuggestions, selectedTagIds,
 
     if (matches.length === 0) {
         suggestionsEl.innerHTML = '';
+        if (input.closest('.card')) {
+            const cardEl = input.closest('.card');
+            cardEl.dataset.tagSuggestionsDismissed = 'false';
+            cardEl._tagSuggestions = [];
+        }
         return [];
     }
 

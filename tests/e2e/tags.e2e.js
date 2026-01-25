@@ -150,4 +150,20 @@ test.describe('URL Cards Tag E2E Tests', () => {
 
     await expect(card.locator('.tag-chip', { hasText: 'bread' })).toBeVisible();
   });
+
+  test('should create a new tag when suggestions no longer match', async ({ page }) => {
+    const { card, getTagInput } = await setupCardWithEdit(page);
+
+    let tagInput = await getTagInput();
+    await tagInput.fill('bread');
+    await tagInput.press('Enter');
+    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toBeVisible();
+
+    tagInput = await getTagInput();
+    await tagInput.fill('breakfast');
+    await tagInput.press('Enter');
+
+    await expect(card.locator('.tag-chip', { hasText: 'breakfast' })).toBeVisible();
+    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toHaveCount(1);
+  });
 });
