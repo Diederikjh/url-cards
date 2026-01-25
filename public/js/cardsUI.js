@@ -2,7 +2,8 @@
 import { getCurrentUser } from './auth.js';
 import { currentBoardId } from './boardsUI.js';
 import { onTagsUpdated, getTagByNameLower } from './tagStore.js';
-import { pickRandomTagColor, getReadableTextColor } from './tagPalette.js';
+import { pickRandomTagColor } from './tagPalette.js';
+import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags } from './tagsView.js';
 
 let cardService = null;
 let tagService = null;
@@ -150,7 +151,7 @@ function createCardElement(card) {
             ${actionsHtml}
         </div>
     `;
-    renderCardTags(cardDiv, getCardTags(cardDiv), false);
+    renderCardTagsWithFallbackWrapper(cardDiv, getCardTags(cardDiv), false);
     return cardDiv;
 }
 
@@ -471,7 +472,7 @@ window.cancelCard = function (cardId) {
     }
     if (editHandlers[cardId]?.originalTags) {
         setCardTags(card, editHandlers[cardId].originalTags);
-        renderCardTags(card, editHandlers[cardId].originalTags, false);
+        renderCardTagsWithFallbackWrapper(card, editHandlers[cardId].originalTags, false);
     }
 
     window.exitEditMode(cardId);
@@ -556,151 +557,39 @@ function setCardTags(cardEl, tags) {
     cardEl.dataset.tags = JSON.stringify(normalized);
 }
 
-function renderCardTags(cardEl, tags, editable) {
-    const container = cardEl.querySelector('[data-card-tags]');
-    if (!container) return;
-    let safeTags = Array.isArray(tags) ? tags : [];
-    if (safeTags.length === 0) {
-        const fallbackTags = getCardTagIds(cardEl)
-            .map((tagId) => tagMap.get(tagId))
-            .filter(Boolean);
-        if (fallbackTags.length > 0) {
-            safeTags = fallbackTags;
-        }
-    }
-
-    const chipsHtml = safeTags.map((tag) => {
-        if (!tag || !tag.name) return '';
-        const textColor = getReadableTextColor(tag.color);
-        const removeBtn = editable ? `<button class="tag-remove-btn" data-tag-remove="${tag.id}" aria-label="Remove tag">×</button>` : '';
-        return `
-            <span class="tag-chip" style="background:${tag.color}; color:${textColor};" data-tag-id="${tag.id}">
-                ${tag.name}
-                ${removeBtn}
-            </span>
-        `;
-    }).join('');
-
-    const inputHtml = editable ? `
-        <div class="tag-input-row">
-            <input type="text" class="tag-input" placeholder="Add tag..." data-tag-input />
-            <div class="tag-suggestions" data-tag-suggestions></div>
-        </div>
-    ` : '';
-
-    container.innerHTML = `
-        <div class="tag-chips">${chipsHtml || (editable ? '' : '<span class="tag-placeholder">No tags</span>')}</div>
-        ${inputHtml}
-    `;
+function renderCardTagsWithFallbackWrapper(cardEl, tags, editable) {
+    const fallbackTags = getCardTagIds(cardEl)
+        .map((tagId) => tagMap.get(tagId))
+        .filter(Boolean);
+    renderCardTagsWithFallback(cardEl, tags, fallbackTags, editable);
 }
 
 function enableTagEditing(cardEl, tags) {
-    renderCardTags(cardEl, tags, true);
-    const input = cardEl.querySelector('[data-tag-input]');
-    const suggestions = cardEl.querySelector('[data-tag-suggestions]');
-    const removeButtons = cardEl.querySelectorAll('[data-tag-remove]');
-
-    const handleRemove = (e) => {
-        const tagId = e.currentTarget.getAttribute('data-tag-remove');
-        const nextTags = getCardTags(cardEl).filter(tag => tag.id !== tagId);
-        const nextTagIds = nextTags.map(tag => tag.id);
-        setCardTags(cardEl, nextTags);
-        setCardTagIds(cardEl, nextTagIds);
-        renderCardTags(cardEl, nextTags, true);
-        enableTagEditing(cardEl, nextTags);
-    };
-
-    removeButtons.forEach(btn => {
-        btn.addEventListener('click', handleRemove);
+    enableTagEditingView(cardEl, {
+        getSelectedTags: () => getCardTags(cardEl),
+        setSelectedTags: (next) => setCardTags(cardEl, next),
+        getSelectedTagIds: () => getCardTagIds(cardEl),
+        setSelectedTagIds: (next) => setCardTagIds(cardEl, next),
+        getSuggestions: (query, excludeIds) => {
+            const matches = [];
+            tagMap.forEach((tag, tagId) => {
+                if (matches.length >= 6) return;
+                if (excludeIds.includes(tagId)) return;
+                if (tag.nameLower.startsWith(query)) {
+                    matches.push(tag);
+                }
+            });
+            return matches;
+        },
+        onCreateTag: (raw) => getOrCreateTag(raw)
     });
-
-    const handleInputKeydown = async (e) => {
-        if (e.key === 'Enter' || e.key === ',') {
-            e.preventDefault();
-            const raw = input.value.trim();
-            if (raw.length < 2 || raw.length > 40) {
-                alert('Tags should be 2-40 characters long.');
-                return;
-            }
-            const tag = await getOrCreateTag(raw);
-            if (tag) {
-                const nextTags = Array.from(new Map([...getCardTags(cardEl), tag].map(item => [item.id, item])).values());
-                const nextTagIds = nextTags.map(item => item.id);
-                setCardTags(cardEl, nextTags);
-                setCardTagIds(cardEl, nextTagIds);
-                renderCardTags(cardEl, nextTags, true);
-                enableTagEditing(cardEl, nextTags);
-                input.value = '';
-                updateSuggestions(input, suggestions, nextTags.map(item => item.id));
-            }
-        } else if (e.key === 'Escape') {
-            input.blur();
-        }
-    };
-
-    const handleInput = () => {
-        updateSuggestions(input, suggestions, getCardTagIds(cardEl));
-    };
-
-    if (input) {
-        input.addEventListener('keydown', handleInputKeydown);
-        input.addEventListener('input', handleInput);
-        updateSuggestions(input, suggestions, getCardTagIds(cardEl));
-    }
-
     cardEl.dataset.tagEditorActive = 'true';
 }
 
 function disableTagEditing(cardEl) {
     const tags = getCardTags(cardEl);
-    renderCardTags(cardEl, tags, false);
+    disableTagEditingView(cardEl, tags);
     cardEl.dataset.tagEditorActive = 'false';
-}
-
-function updateSuggestions(input, suggestionsEl, selectedTagIds) {
-    if (!suggestionsEl) return;
-    const query = input.value.trim().toLowerCase();
-    if (!query) {
-        suggestionsEl.innerHTML = '';
-        return;
-    }
-
-    const matches = [];
-    tagMap.forEach((tag, tagId) => {
-        if (matches.length >= 6) return;
-        if (selectedTagIds.includes(tagId)) return;
-        if (tag.nameLower.startsWith(query)) {
-            matches.push(tag);
-        }
-    });
-
-    if (matches.length === 0) {
-        suggestionsEl.innerHTML = '';
-        return;
-    }
-
-    suggestionsEl.innerHTML = matches.map(tag => {
-        const textColor = getReadableTextColor(tag.color);
-        return `
-            <button class="tag-suggestion" data-tag-suggestion="${tag.id}" style="background:${tag.color}; color:${textColor};">
-                ${tag.name}
-            </button>
-        `;
-    }).join('');
-
-    suggestionsEl.querySelectorAll('[data-tag-suggestion]').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const tagId = btn.getAttribute('data-tag-suggestion');
-            const tag = tagMap.get(tagId);
-            if (!tag) return;
-            const nextTags = Array.from(new Map([...getCardTags(input.closest('.card')), tag].map(item => [item.id, item])).values());
-            const nextTagIds = nextTags.map(item => item.id);
-            setCardTags(input.closest('.card'), nextTags);
-            setCardTagIds(input.closest('.card'), nextTagIds);
-            renderCardTags(input.closest('.card'), nextTags, true);
-            enableTagEditing(input.closest('.card'), nextTags);
-        });
-    });
 }
 
 async function getOrCreateTag(rawName) {
@@ -741,7 +630,7 @@ function refreshAllCardTags() {
     cardsContainer.querySelectorAll('.card').forEach((cardEl) => {
         const tags = getCardTags(cardEl);
         const editable = cardEl.dataset.tagEditorActive === 'true';
-        renderCardTags(cardEl, tags, editable);
+        renderCardTagsWithFallbackWrapper(cardEl, tags, editable);
         if (editable) {
             enableTagEditing(cardEl, tags);
         }
@@ -751,33 +640,20 @@ function refreshAllCardTags() {
 
 function maybeBackfillCardTags(cardEl) {
     if (!cardService) return;
-    if (cardEl.dataset.tagsBackfilled === 'true') return;
-    const tagIds = getCardTagIds(cardEl);
-    const tags = getCardTags(cardEl);
-    let nextTags = tags;
-    let nextTagIds = tagIds;
-
-    if (tags.length === 0 && tagIds.length > 0) {
-        const derived = tagIds.map((tagId) => tagMap.get(tagId)).filter(Boolean);
-        if (derived.length !== tagIds.length) return;
-        nextTags = derived;
-        setCardTags(cardEl, nextTags);
-    }
-
-    if (tagIds.length === 0 && tags.length > 0) {
-        nextTagIds = tags.map((tag) => tag.id).filter(Boolean);
-        setCardTagIds(cardEl, nextTagIds);
-    }
-
-    if (nextTags.length === 0 && nextTagIds.length === 0) return;
-
-    cardEl.dataset.tagsBackfilled = 'true';
-    const cardId = cardEl.getAttribute('data-card-id');
-    if (cardId) {
-        cardService.updateCard(cardId, { tags: nextTags, tagIds: nextTagIds }).catch((error) => {
-            console.error('Failed to backfill tags for card:', error);
-        });
-    }
+    backfillCardTags(cardEl, {
+        getCardTags: () => getCardTags(cardEl),
+        setCardTags: (next) => setCardTags(cardEl, next),
+        getCardTagIds: () => getCardTagIds(cardEl),
+        setCardTagIds: (next) => setCardTagIds(cardEl, next),
+        getFallbackTags: (tagIds) => tagIds.map((tagId) => tagMap.get(tagId)).filter(Boolean),
+        onPersist: (tags, tagIds) => {
+            const cardId = cardEl.getAttribute('data-card-id');
+            if (!cardId) return;
+            cardService.updateCard(cardId, { tags, tagIds }).catch((error) => {
+                console.error('Failed to backfill tags for card:', error);
+            });
+        }
+    });
 }
 
 function compareCards(a, b, sortType) {
