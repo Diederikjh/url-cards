@@ -9,11 +9,11 @@ export default defineConfig({
   testMatch: '**/*.e2e.js',
 
   // Maximum time one test can run
-  timeout: 120 * 1000,
+  timeout: 30 * 1000,
 
   // Expect timeout (for waitFor assertions)
   expect: {
-    timeout: 10 * 1000,
+    timeout: 3 * 1000,
   },
 
   // Run tests in parallel (disable for more stable CI)
@@ -45,6 +45,9 @@ export default defineConfig({
 
     // Headless mode for CI/CD
     headless: true,
+
+    // Default timeouts for UI actions
+    actionTimeout: 3 * 1000,
   },
 
   // Do NOT use webServer - we'll handle Firebase Emulator separately

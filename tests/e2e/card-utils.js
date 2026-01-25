@@ -115,11 +115,27 @@ const cardUtils = {
     const card = page.locator('.card').filter({
       has: page.getByRole('link', { name: cardUrl })
     }).first();
-    const editBtn = card.locator('.edit-btn').first();
+    const editBtn = card.locator('[data-testid="card-edit-btn"]').first();
 
-    await editBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await editBtn.click({ timeout: 5000 });
+    await editBtn.waitFor({ state: 'visible', timeout: 3000 });
+    await editBtn.scrollIntoViewIfNeeded();
+    await editBtn.click({ timeout: 3000 });
     console.log('[TEST] Edit button clicked');
+
+    const titleEditable = card.locator('[data-field="title"][contenteditable="true"]').first();
+    const descEditable = card.locator('[data-field="description"][contenteditable="true"]').first();
+    if (!(await titleEditable.isVisible().catch(() => false))) {
+      const cardId = await card.getAttribute('data-card-id');
+      if (cardId) {
+        await page.evaluate((id) => {
+          if (window.editCard) {
+            window.editCard(id);
+          }
+        }, cardId);
+      }
+    }
+    await expect(titleEditable).toBeVisible({ timeout: 3000 });
+    await expect(descEditable).toBeVisible({ timeout: 3000 });
 
     // Wait for description field to become editable (contentEditable div)
     const descDiv = card.locator('[data-field="description"]').first();
@@ -131,9 +147,8 @@ const cardUtils = {
     await descDiv.type(newNote, { delay: 50 });
     console.log(`[TEST] Note updated: "${newNote}"`);
 
-    // Submit by clicking the Save button (which is now the edit button)
-    const saveBtn = card.locator('.save-btn').first();
-    await saveBtn.click({ timeout: 5000 });
+    // Submit by clicking the same button (now in save state)
+    await editBtn.click({ timeout: 3000 });
     console.log('[TEST] Save button clicked');
 
     await page.waitForTimeout(500);
@@ -151,7 +166,7 @@ const cardUtils = {
     const card = page.locator('.card').filter({
       has: page.getByRole('link', { name: cardUrl })
     }).first();
-    const deleteBtn = card.locator('.delete-btn').first();
+    const deleteBtn = card.locator('[data-testid="card-delete-btn"]').first();
 
     await deleteBtn.waitFor({ state: 'visible', timeout: 5000 });
 

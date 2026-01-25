@@ -136,8 +136,8 @@ function createCardElement(card) {
     // In read-only mode, don't show edit/delete buttons
     const actionsHtml = isReadOnly ? '' : `
         <div class="card-actions">
-            <button class="edit-btn" onclick="window.editCard('${card.id}')">Edit</button>
-            <button class="delete-btn" onclick="window.deleteCard('${card.id}')">Delete</button>
+            <button class="edit-btn" data-testid="card-edit-btn" onclick="window.editCard('${card.id}')">Edit</button>
+            <button class="delete-btn" data-testid="card-delete-btn" onclick="window.deleteCard('${card.id}')">Delete</button>
         </div>
     `;
 
