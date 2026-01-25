@@ -118,7 +118,7 @@ function renderPublicTags(cardEl) {
         `;
     }).join('');
 
-    container.innerHTML = chips || '<span class="tag-placeholder">No tags</span>';
+    container.innerHTML = chips;
 }
 
 function getTextColor(hexColor) {

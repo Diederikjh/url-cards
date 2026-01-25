@@ -27,8 +27,13 @@ export function renderCardTags(cardEl, tags, editable, fallbackTags = []) {
         </div>
     ` : '';
 
+    if (!editable && !chipsHtml) {
+        container.innerHTML = '';
+        return;
+    }
+
     container.innerHTML = `
-        <div class="tag-chips">${chipsHtml || (editable ? '' : '<span class="tag-placeholder">No tags</span>')}</div>
+        <div class="tag-chips">${chipsHtml}</div>
         ${inputHtml}
     `;
 }
