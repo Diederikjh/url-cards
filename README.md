@@ -13,6 +13,7 @@ Lots of help from the LLMs, as I'm not a web dev.
 
 - **URL-based Cards**: Add URLs to create cards with auto-extracted metadata
 - **Editable Content**: Modify card titles and descriptions
+- **Tagging**: Add multi-word tags to cards, manage tag names/colors, and remove tags without deleting cards
 - **Google Authentication**: Secure user login via Google accounts
 - **Real-time Sync**: Cards sync across devices using Firebase
 - **Responsive Design**: Works on desktop and mobile
@@ -21,7 +22,6 @@ Lots of help from the LLMs, as I'm not a web dev.
 ## Largeish TODOs
 
  - Drag/drop to re-arrange cards.
- - Tags on cards
  - Reactions on cards for public view (only with logged in user)
 
 ## Architecture
