@@ -3,7 +3,7 @@ import { getCurrentUser } from './auth.js';
 import { currentBoardId } from './boardsUI.js';
 import { onTagsUpdated, getTagByNameLower } from './tagStore.js';
 import { pickRandomTagColor } from './tagPalette.js';
-import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags } from './tagsView.js';
+import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags, commitPendingInput } from './tagsView.js';
 
 let cardService = null;
 let tagService = null;
@@ -415,6 +415,9 @@ window.editCard = function (cardId) {
     };
 
     const handleClickAway = (e) => {
+        if (card.dataset.suppressClickAway === 'true') {
+            return;
+        }
         if (!card.contains(e.target)) {
             window.cancelCard(cardId);
         }
@@ -435,6 +438,8 @@ window.saveCard = async function (cardId) {
 
     const titleEl = card.querySelector('[data-field="title"]');
     const descEl = card.querySelector('[data-field="description"]');
+
+    await commitPendingInput(card);
 
     const newTitle = titleEl.textContent.trim();
     const newDescription = descEl.innerText.trim();

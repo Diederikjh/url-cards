@@ -65,6 +65,10 @@ export function enableTagEditing(cardEl, options) {
         return fallbackTags.map((tag) => tag.id).filter(Boolean);
     };
 
+    cardEl._tagEditOptions = options;
+    cardEl._tagSuggestions = [];
+    cardEl.dataset.tagSuggestionsDismissed = 'false';
+
     renderCardTags(cardEl, getEffectiveTags(), true);
     const input = cardEl.querySelector('[data-tag-input]');
     const suggestions = cardEl.querySelector('[data-tag-suggestions]');
@@ -86,32 +90,14 @@ export function enableTagEditing(cardEl, options) {
     });
 
     const handleInputKeydown = async (e) => {
+        e.stopPropagation();
         if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
-            const raw = input.value.trim();
-            if (raw.length < 2 || raw.length > 40) {
-                alert('Tags should be 2-40 characters long.');
-                return;
-            }
-            const tag = await onCreateTag(raw);
-            if (tag) {
-                const nextTags = Array.from(new Map([...getSelectedTags(), tag].map(item => [item.id, item])).values());
-                const nextTagIds = nextTags.map(item => item.id);
-                setSelectedTags(nextTags);
-                setSelectedTagIds(nextTagIds);
-                renderCardTags(cardEl, nextTags, true);
-                enableTagEditing(cardEl, options);
-                input.value = '';
-                updateSuggestions(input, suggestions, getSuggestions, nextTagIds, (tag) => {
-                    const currentTags = getEffectiveTags();
-                    const next = Array.from(new Map([...currentTags, tag].map(item => [item.id, item])).values());
-                    const nextIds = next.map(item => item.id);
-                    setSelectedTags(next);
-                    setSelectedTagIds(nextIds);
-                    renderCardTags(cardEl, next, true);
-                    enableTagEditing(cardEl, options);
-                });
-            }
+            cardEl.dataset.suppressClickAway = 'true';
+            setTimeout(() => {
+                delete cardEl.dataset.suppressClickAway;
+            }, 0);
+            await commitPendingInput(cardEl);
         } else if (e.key === 'Escape') {
             input.blur();
         }
@@ -126,6 +112,9 @@ export function enableTagEditing(cardEl, options) {
             setSelectedTagIds(nextIds);
             renderCardTags(cardEl, next, true);
             enableTagEditing(cardEl, options);
+        }, () => {
+            cardEl.dataset.tagSuggestionsDismissed = 'true';
+            cardEl._tagSuggestions = [];
         });
     };
 
@@ -142,6 +131,9 @@ export function enableTagEditing(cardEl, options) {
             setSelectedTagIds(nextIds);
             renderCardTags(cardEl, next, true);
             enableTagEditing(cardEl, options);
+        }, () => {
+            cardEl.dataset.tagSuggestionsDismissed = 'true';
+            cardEl._tagSuggestions = [];
         });
     }
 }
@@ -188,19 +180,19 @@ export function backfillCardTags(cardEl, options) {
     onPersist(nextTags, nextTagIds);
 }
 
-function updateSuggestions(input, suggestionsEl, getSuggestions, selectedTagIds, onSelect) {
-    if (!suggestionsEl) return;
+function updateSuggestions(input, suggestionsEl, getSuggestions, selectedTagIds, onSelect, onDismiss) {
+    if (!suggestionsEl) return [];
     const query = input.value.trim().toLowerCase();
     if (!query) {
         suggestionsEl.innerHTML = '';
-        return;
+        return [];
     }
 
     const matches = getSuggestions(query, selectedTagIds).slice(0, 6);
 
     if (matches.length === 0) {
         suggestionsEl.innerHTML = '';
-        return;
+        return [];
     }
 
     suggestionsEl.innerHTML = matches.map(tag => {
@@ -212,6 +204,31 @@ function updateSuggestions(input, suggestionsEl, getSuggestions, selectedTagIds,
         `;
     }).join('');
 
+    const dismissBtn = document.createElement('button');
+    dismissBtn.className = 'tag-suggestion-dismiss';
+    dismissBtn.type = 'button';
+    dismissBtn.textContent = 'x';
+    dismissBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+    dismissBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        suggestionsEl.innerHTML = '';
+        if (input.closest('.card')) {
+            const cardEl = input.closest('.card');
+            cardEl.dataset.tagSuggestionsDismissed = 'true';
+            cardEl._tagSuggestions = [];
+        }
+        if (onDismiss) {
+            onDismiss();
+        }
+    });
+    suggestionsEl.appendChild(dismissBtn);
+
+    if (input.closest('.card')) {
+        const cardEl = input.closest('.card');
+        cardEl.dataset.tagSuggestionsDismissed = 'false';
+        cardEl._tagSuggestions = matches;
+    }
+
     suggestionsEl.querySelectorAll('[data-tag-suggestion]').forEach((btn) => {
         btn.addEventListener('mousedown', (e) => e.stopPropagation());
         btn.addEventListener('click', (e) => {
@@ -222,4 +239,45 @@ function updateSuggestions(input, suggestionsEl, getSuggestions, selectedTagIds,
             onSelect(matchesTag);
         });
     });
+    return matches;
+}
+
+export async function commitPendingInput(cardEl) {
+    if (!cardEl || !cardEl._tagEditOptions) return;
+    const options = cardEl._tagEditOptions;
+    const input = cardEl.querySelector('[data-tag-input]');
+    if (!input) return;
+    const raw = input.value.trim();
+    if (!raw) return;
+
+    if (raw.length < 2 || raw.length > 40) {
+        alert('Tags should be 2-40 characters long.');
+        return;
+    }
+
+    const suggestionsDismissed = cardEl.dataset.tagSuggestionsDismissed === 'true';
+    const suggestions = Array.isArray(cardEl._tagSuggestions) ? cardEl._tagSuggestions : [];
+
+    let tag = null;
+    if (!suggestionsDismissed && suggestions.length > 0) {
+        tag = suggestions[0];
+    } else {
+        tag = await options.onCreateTag(raw);
+    }
+
+    if (!tag) return;
+
+    let currentTags = options.getSelectedTags();
+    if (currentTags.length === 0 && typeof options.getFallbackTags === 'function') {
+        currentTags = options.getFallbackTags();
+    }
+    const nextTags = Array.from(new Map([...currentTags, tag].map(item => [item.id, item])).values());
+    const nextTagIds = nextTags.map(item => item.id);
+    options.setSelectedTags(nextTags);
+    options.setSelectedTagIds(nextTagIds);
+    renderCardTags(cardEl, nextTags, true);
+    enableTagEditing(cardEl, options);
+    input.value = '';
+    cardEl.dataset.tagSuggestionsDismissed = 'false';
+    cardEl._tagSuggestions = [];
 }
