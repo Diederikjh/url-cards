@@ -413,6 +413,7 @@ header h1 {
     gap: 6px;
 }
 
+
 .tag-chip {
     display: inline-flex;
     align-items: center;
@@ -421,6 +422,7 @@ header h1 {
     border-radius: 999px;
     font-size: 0.8rem;
     font-weight: 600;
+    width: fit-content;
 }
 
 .tag-remove-btn {

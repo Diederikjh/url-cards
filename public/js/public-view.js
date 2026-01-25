@@ -118,7 +118,12 @@ function renderPublicTags(cardEl) {
         `;
     }).join('');
 
-    container.innerHTML = chips;
+    if (!chips) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `<div class="tag-chips">${chips}</div>`;
 }
 
 function getTextColor(hexColor) {
