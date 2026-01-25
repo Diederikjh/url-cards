@@ -40,17 +40,35 @@ export function enableTagEditing(cardEl, options) {
         getSelectedTagIds,
         setSelectedTagIds,
         getSuggestions,
-        onCreateTag
+        onCreateTag,
+        getFallbackTags
     } = options;
 
-    renderCardTags(cardEl, getSelectedTags(), true);
+    const getEffectiveTags = () => {
+        const selected = getSelectedTags();
+        if (selected.length > 0) return selected;
+        if (typeof getFallbackTags === 'function') {
+            return getFallbackTags();
+        }
+        return selected;
+    };
+
+    const getEffectiveTagIds = () => {
+        const selectedIds = getSelectedTagIds();
+        if (selectedIds.length > 0) return selectedIds;
+        const fallbackTags = getEffectiveTags();
+        return fallbackTags.map((tag) => tag.id).filter(Boolean);
+    };
+
+    renderCardTags(cardEl, getEffectiveTags(), true);
     const input = cardEl.querySelector('[data-tag-input]');
     const suggestions = cardEl.querySelector('[data-tag-suggestions]');
     const removeButtons = cardEl.querySelectorAll('[data-tag-remove]');
 
     const handleRemove = (e) => {
+        e.stopPropagation();
         const tagId = e.currentTarget.getAttribute('data-tag-remove');
-        const nextTags = getSelectedTags().filter(tag => tag.id !== tagId);
+        const nextTags = getEffectiveTags().filter(tag => tag.id !== tagId);
         const nextTagIds = nextTags.map(tag => tag.id);
         setSelectedTags(nextTags);
         setSelectedTagIds(nextTagIds);
@@ -80,7 +98,7 @@ export function enableTagEditing(cardEl, options) {
                 enableTagEditing(cardEl, options);
                 input.value = '';
                 updateSuggestions(input, suggestions, getSuggestions, nextTagIds, (tag) => {
-                    const currentTags = getSelectedTags();
+                    const currentTags = getEffectiveTags();
                     const next = Array.from(new Map([...currentTags, tag].map(item => [item.id, item])).values());
                     const nextIds = next.map(item => item.id);
                     setSelectedTags(next);
@@ -95,8 +113,8 @@ export function enableTagEditing(cardEl, options) {
     };
 
     const handleInput = () => {
-        updateSuggestions(input, suggestions, getSuggestions, getSelectedTagIds(), (tag) => {
-            const currentTags = getSelectedTags();
+        updateSuggestions(input, suggestions, getSuggestions, getEffectiveTagIds(), (tag) => {
+            const currentTags = getEffectiveTags();
             const next = Array.from(new Map([...currentTags, tag].map(item => [item.id, item])).values());
             const nextIds = next.map(item => item.id);
             setSelectedTags(next);
@@ -107,10 +125,12 @@ export function enableTagEditing(cardEl, options) {
     };
 
     if (input) {
+        input.addEventListener('mousedown', (e) => e.stopPropagation());
+        input.addEventListener('click', (e) => e.stopPropagation());
         input.addEventListener('keydown', handleInputKeydown);
         input.addEventListener('input', handleInput);
-        updateSuggestions(input, suggestions, getSuggestions, getSelectedTagIds(), (tag) => {
-            const currentTags = getSelectedTags();
+        updateSuggestions(input, suggestions, getSuggestions, getEffectiveTagIds(), (tag) => {
+            const currentTags = getEffectiveTags();
             const next = Array.from(new Map([...currentTags, tag].map(item => [item.id, item])).values());
             const nextIds = next.map(item => item.id);
             setSelectedTags(next);
@@ -188,7 +208,9 @@ function updateSuggestions(input, suggestionsEl, getSuggestions, selectedTagIds,
     }).join('');
 
     suggestionsEl.querySelectorAll('[data-tag-suggestion]').forEach((btn) => {
-        btn.addEventListener('click', () => {
+        btn.addEventListener('mousedown', (e) => e.stopPropagation());
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
             const tagId = btn.getAttribute('data-tag-suggestion');
             const matchesTag = matches.find(tag => tag.id === tagId);
             if (!matchesTag) return;

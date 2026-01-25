@@ -570,6 +570,7 @@ function enableTagEditing(cardEl, tags) {
         setSelectedTags: (next) => setCardTags(cardEl, next),
         getSelectedTagIds: () => getCardTagIds(cardEl),
         setSelectedTagIds: (next) => setCardTagIds(cardEl, next),
+        getFallbackTags: () => getCardTagIds(cardEl).map((tagId) => tagMap.get(tagId)).filter(Boolean),
         getSuggestions: (query, excludeIds) => {
             const matches = [];
             tagMap.forEach((tag, tagId) => {

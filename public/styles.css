@@ -357,12 +357,14 @@ header h1 {
 
 .card-content {
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(8px, 1.2vw, 14px);
 }
 
 .card-url {
     font-size: 0.85rem;
     color: #7f8c8d;
-    margin-bottom: 10px;
     overflow: hidden;
 }
 
@@ -388,7 +390,6 @@ header h1 {
     font-size: 1.3rem;
     font-weight: 700;
     color: #2c3e50;
-    margin-bottom: 10px;
     line-height: 1.3;
 }
 
