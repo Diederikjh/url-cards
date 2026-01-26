@@ -2,6 +2,8 @@
 
 A simple web app for creating and managing cards from URLs. Each card displays the title and description extracted from a URL, with user editing capabilities.  You can optionally make your board public for anyone to read it :) 
 
+![Demo](assets/demo.gif)
+
 Live demo at https://url-cards.web.app/  (limited user signup for now)
 
 The one big design goal of this project is for anyone to deploy this app on their own firebase project and change the software to fit their own needs.  (Like opensource software is supposed to work.)  So please feel free to fork and play.
