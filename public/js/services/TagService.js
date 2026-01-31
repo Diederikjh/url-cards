@@ -67,4 +67,15 @@ export class TagService {
     async searchTagsByPrefix(userId, prefix) {
         throw new Error('searchTagsByPrefix() must be implemented');
     }
+
+    /**
+     * Watch for real-time changes to tag usage counts (cards per tag)
+     * @param {string} userId - The user's ID
+     * @param {Function} callback - Called with Map<tagId, count>
+     * @returns {Function} Unsubscribe function
+     * @throws NotImplementedError
+     */
+    watchTagUsageCounts(userId, callback) {
+        throw new Error('watchTagUsageCounts() must be implemented');
+    }
 }

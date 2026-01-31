@@ -811,7 +811,7 @@ header h1 {
 
 .tag-row {
     display: grid;
-    grid-template-columns: 1fr 2fr 80px 90px 90px;
+    grid-template-columns: 1fr 110px 2fr 80px 90px 90px;
     gap: 12px;
     align-items: center;
     background: white;
@@ -829,6 +829,17 @@ header h1 {
     align-items: center;
     justify-content: center;
     min-width: 120px;
+}
+
+.tag-count {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    background: #f0f3f6;
+    color: #2c3e50;
+    min-width: 90px;
 }
 
 .tag-name-input {

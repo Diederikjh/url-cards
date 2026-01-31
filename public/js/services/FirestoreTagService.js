@@ -132,4 +132,29 @@ export class FirestoreTagService extends TagService {
 
         return snapshot.docs.map(doc => Tag.fromFirestore(doc.id, doc.data()));
     }
+
+    watchTagUsageCounts(userId, callback) {
+        return this.cardsCollection
+            .where('userId', '==', userId)
+            .onSnapshot((snapshot) => {
+                const counts = new Map();
+                snapshot.docs.forEach((doc) => {
+                    const data = doc.data();
+                    const tagIds = Array.isArray(data.tagIds) ? data.tagIds : [];
+                    if (tagIds.length > 0) {
+                        tagIds.forEach((tagId) => {
+                            if (!tagId) return;
+                            counts.set(tagId, (counts.get(tagId) || 0) + 1);
+                        });
+                        return;
+                    }
+                    const tags = Array.isArray(data.tags) ? data.tags : [];
+                    tags.forEach((tag) => {
+                        if (!tag || !tag.id) return;
+                        counts.set(tag.id, (counts.get(tag.id) || 0) + 1);
+                    });
+                });
+                callback(counts);
+            });
+    }
 }

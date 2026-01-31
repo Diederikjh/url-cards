@@ -12,6 +12,8 @@ let createTagBtn;
 let tagsEmptyState;
 
 let tagsSubscription = null;
+let tagCountsSubscription = null;
+let tagCounts = new Map();
 
 export function initTagsUI(service) {
     tagService = service;
@@ -39,10 +41,13 @@ export function initTagsUI(service) {
             renderTagsList(getTagsSnapshot().tags);
         }
     });
+
+    ensureTagCountsSubscription();
 }
 
 export function showTagsView() {
     if (!tagsView) return;
+    ensureTagCountsSubscription();
     renderTagsList(getTagsSnapshot().tags);
 }
 
@@ -118,8 +123,11 @@ function renderTagsList(tags) {
         const row = document.createElement('div');
         row.className = 'tag-row';
         row.dataset.tagId = tag.id;
+        const count = tagCounts.get(tag.id) || 0;
+        const countLabel = `${count} ${count === 1 ? 'card' : 'cards'}`;
         row.innerHTML = `
             <div class="tag-preview" style="background:${tag.color}; color:${getTextColor(tag.color)};">${tag.name}</div>
+            <div class="tag-count" title="${countLabel}">${countLabel}</div>
             <input class="tag-name-input" type="text" value="${tag.name}" />
             <input class="tag-color-input" type="color" value="${tag.color}" />
             <button class="tag-save-btn">Save</button>
@@ -190,6 +198,26 @@ function renderTagsList(tags) {
         });
 
         tagsList.appendChild(row);
+    });
+}
+
+function ensureTagCountsSubscription() {
+    if (!tagService) return;
+    const currentUser = getCurrentUser();
+    if (!currentUser) {
+        if (tagCountsSubscription) {
+            tagCountsSubscription();
+            tagCountsSubscription = null;
+        }
+        tagCounts = new Map();
+        return;
+    }
+    if (tagCountsSubscription) return;
+    tagCountsSubscription = tagService.watchTagUsageCounts(currentUser.uid, (counts) => {
+        tagCounts = counts instanceof Map ? counts : new Map(Object.entries(counts || {}));
+        if (!tagSearchInput || !tagSearchInput.value.trim()) {
+            renderTagsList(getTagsSnapshot().tags);
+        }
     });
 }
 
