@@ -1,3 +1,6 @@
+[![Deploy to Firebase](https://github.com/Diederikjh/url-cards/actions/workflows/firebase-hosting-merge.yml/badge.svg)](https://github.com/Diederikjh/url-cards/actions/workflows/firebase-hosting-merge.yml)
+[![Tests](https://github.com/Diederikjh/url-cards/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/Diederikjh/url-cards/actions/workflows/e2e-tests.yml)
+
 # URL Cards
 
 A simple web app for creating and managing cards from URLs. Each card displays the title and description extracted from a URL, with user editing capabilities.  You can optionally make your board public for anyone to read it :) 
