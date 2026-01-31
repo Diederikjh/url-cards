@@ -27,6 +27,7 @@ let tagNameMap = new Map();
 let tagsUnsubscribe = null;
 let selectedTagFilterId = null;
 let isFilterPanelOpen = false;
+let handleFilterClickAway = null;
 let dragState = {
     draggingEl: null,
     startOrder: [],
@@ -70,11 +71,23 @@ export function initCardsUI(service, tagSvc) {
     }
 
     if (clearTagFilterBtn) {
-        clearTagFilterBtn.addEventListener('click', () => setActiveTagFilter(null));
+        clearTagFilterBtn.addEventListener('click', () => {
+            setActiveTagFilter(null);
+            setFilterPanelOpen(false);
+        });
     }
 
     if (tagFilterToggleBtn) {
         tagFilterToggleBtn.addEventListener('click', () => setFilterPanelOpen(!isFilterPanelOpen));
+    }
+
+    if (!handleFilterClickAway) {
+        handleFilterClickAway = (event) => {
+            if (!isFilterPanelOpen || !tagFilterPanel) return;
+            if (tagFilterPanel.contains(event.target)) return;
+            setFilterPanelOpen(false);
+        };
+        document.addEventListener('click', handleFilterClickAway);
     }
 
     setFilterPanelOpen(false);
@@ -741,6 +754,7 @@ function renderTagFilterOptions(tags) {
         button.addEventListener('click', () => {
             const next = tag.id === selectedTagFilterId ? null : tag.id;
             setActiveTagFilter(next);
+            setFilterPanelOpen(false);
         });
         tagFilterList.appendChild(button);
     });
