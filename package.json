@@ -4,9 +4,9 @@
   "description": "A simple web app for creating and managing cards from URLs. Each card displays the title and description extracted from a URL, with user editing capabilities.",
   "main": "index.js",
   "scripts": {
-    "test": "jest --forceExit",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage --forceExit",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest --forceExit",
+    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage --forceExit",
     "test:e2e": "playwright test",
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",

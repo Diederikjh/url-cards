@@ -3,6 +3,7 @@ import { getCurrentUser } from './auth.js';
 import { currentBoardId } from './boardsUI.js';
 import { onTagsUpdated, getTagByNameLower } from './tagStore.js';
 import { pickRandomTagColor, getReadableTextColor } from './tagPalette.js';
+import { buildAvailableTagOptions, cardMatchesTagFilter } from './utils/tagFilter.mjs';
 import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags, commitPendingInput } from './tagsView.js';
 
 let cardService = null;
@@ -693,41 +694,8 @@ function refreshAllCardTags() {
 
 function updateTagFilterOptions(cards) {
     if (!tagFilterPanel || !tagFilterList || !tagFilterEmpty) return;
-    const availableTags = buildAvailableTagOptions(cards);
+    const availableTags = buildAvailableTagOptions(cards, tagMap);
     renderTagFilterOptions(availableTags);
-}
-
-function buildAvailableTagOptions(cards) {
-    const byId = new Map();
-    const list = Array.isArray(cards) ? cards : [];
-    list.forEach((card) => {
-        const cardTags = Array.isArray(card.tags) ? card.tags : [];
-        cardTags.forEach((tag) => {
-            if (!tag || !tag.id || !tag.name) return;
-            byId.set(tag.id, {
-                id: tag.id,
-                name: tag.name,
-                color: tag.color || '#ecf0f1'
-            });
-        });
-        const cardTagIds = Array.isArray(card.tagIds) ? card.tagIds : [];
-        cardTagIds.forEach((tagId) => {
-            if (!tagId) return;
-            const fromStore = tagMap.get(tagId);
-            if (!fromStore) return;
-            if (!byId.has(tagId)) {
-                byId.set(tagId, {
-                    id: fromStore.id,
-                    name: fromStore.name,
-                    color: fromStore.color || '#ecf0f1'
-                });
-            }
-        });
-    });
-
-    const options = Array.from(byId.values());
-    options.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
-    return options;
 }
 
 function renderTagFilterOptions(tags) {
@@ -816,17 +784,13 @@ function applyTagFilterToCards() {
     if (!cardsContainer) return;
     const activeId = selectedTagFilterId;
     cardsContainer.querySelectorAll('.card').forEach((cardEl) => {
-        const matches = !activeId || cardMatchesTagFilter(cardEl, activeId);
+        const matches = !activeId || cardMatchesTagFilterDom(cardEl, activeId);
         cardEl.classList.toggle('is-filtered-out', !matches);
     });
 }
 
-function cardMatchesTagFilter(cardEl, tagId) {
-    if (!tagId) return true;
-    const tagIds = getCardTagIds(cardEl);
-    if (tagIds.includes(tagId)) return true;
-    const tags = getCardTags(cardEl);
-    return tags.some(tag => tag.id === tagId);
+function cardMatchesTagFilterDom(cardEl, tagId) {
+    return cardMatchesTagFilter(getCardTagIds(cardEl), getCardTags(cardEl), tagId);
 }
 
 function maybeBackfillCardTags(cardEl) {

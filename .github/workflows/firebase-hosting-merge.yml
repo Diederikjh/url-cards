@@ -7,7 +7,7 @@ on:
     branches:
       - main
 jobs:
-  build_and_deploy:
+  unit_tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -35,6 +35,14 @@ jobs:
         run: |
           kill $(lsof -t -i:8080) $(lsof -t -i:9099) || true
           sleep 2
+
+  build_and_deploy:
+    needs: unit_tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install root dependencies
+        run: npm ci
       - name: Deploy Firestore Rules and Indexes
         uses: w9jds/firebase-action@master
         with:
