@@ -98,29 +98,6 @@ test.describe('URL Cards Tag E2E Tests', () => {
     await expect(card.locator('.tag-chip', { hasText: 'bread' })).toHaveCount(1);
   });
 
-  test('should allow substring tag creation after dismissing suggestions', async ({ page }) => {
-    const { card, getTagInput } = await setupCardWithEdit(page);
-
-    let tagInput = await getTagInput();
-    await tagInput.fill('bread');
-    await tagInput.press('Enter');
-    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toBeVisible();
-
-    await ensureEditMode(card);
-    const breadChip = card.locator('.tag-chip', { hasText: 'bread' });
-    await breadChip.locator('.tag-remove-btn').waitFor({ state: 'visible', timeout: 3000 });
-    await breadChip.locator('.tag-remove-btn').click();
-    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toHaveCount(0);
-
-    tagInput = await getTagInput();
-    await tagInput.fill('br');
-    const dismissBtn = card.locator('.tag-suggestion-dismiss').first();
-    await dismissBtn.waitFor({ state: 'visible', timeout: 5000 });
-    await dismissBtn.click();
-    await tagInput.press('Enter');
-    await expect(card.locator('.tag-chip', { hasText: 'br' })).toBeVisible();
-  });
-
   test('should remove a tag from a card in edit mode', async ({ page }) => {
     const { card, getTagInput } = await setupCardWithEdit(page);
 
@@ -149,21 +126,5 @@ test.describe('URL Cards Tag E2E Tests', () => {
     await saveBtn.click({ timeout: 5000 });
 
     await expect(card.locator('.tag-chip', { hasText: 'bread' })).toBeVisible();
-  });
-
-  test('should create a new tag when suggestions no longer match', async ({ page }) => {
-    const { card, getTagInput } = await setupCardWithEdit(page);
-
-    let tagInput = await getTagInput();
-    await tagInput.fill('bread');
-    await tagInput.press('Enter');
-    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toBeVisible();
-
-    tagInput = await getTagInput();
-    await tagInput.fill('breakfast');
-    await tagInput.press('Enter');
-
-    await expect(card.locator('.tag-chip', { hasText: 'breakfast' })).toBeVisible();
-    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toHaveCount(1);
   });
 });

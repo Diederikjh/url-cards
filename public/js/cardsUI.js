@@ -4,6 +4,8 @@ import { currentBoardId } from './boardsUI.js';
 import { onTagsUpdated, getTagByNameLower } from './tagStore.js';
 import { pickRandomTagColor, getReadableTextColor } from './tagPalette.js';
 import { buildAvailableTagOptions, cardMatchesTagFilter } from './rules/tagFilter.mjs';
+import { buildRankUpdatesForSort, buildRankUpdatesForOrder, compareCards } from './rules/cardSorting.mjs';
+import { getTagSuggestions } from './rules/tagSuggestions.mjs';
 import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags, commitPendingInput } from './tagsView.js';
 
 let cardService = null;
@@ -624,17 +626,7 @@ function enableTagEditing(cardEl, tags) {
         getSelectedTagIds: () => getCardTagIds(cardEl),
         setSelectedTagIds: (next) => setCardTagIds(cardEl, next),
         getFallbackTags: () => getCardTagIds(cardEl).map((tagId) => tagMap.get(tagId)).filter(Boolean),
-        getSuggestions: (query, excludeIds) => {
-            const matches = [];
-            tagMap.forEach((tag, tagId) => {
-                if (matches.length >= 6) return;
-                if (excludeIds.includes(tagId)) return;
-                if (tag.nameLower.startsWith(query)) {
-                    matches.push(tag);
-                }
-            });
-            return matches;
-        },
+        getSuggestions: (query, excludeIds) => getTagSuggestions(query, excludeIds, tagMap),
         onCreateTag: (raw) => getOrCreateTag(raw)
     });
     cardEl.dataset.tagEditorActive = 'true';
@@ -809,47 +801,6 @@ function maybeBackfillCardTags(cardEl) {
             });
         }
     });
-}
-
-function compareCards(a, b, sortType) {
-    switch (sortType) {
-        case 'created_desc':
-            return b.createdAt.toMillis() - a.createdAt.toMillis();
-        case 'created_asc':
-            return a.createdAt.toMillis() - b.createdAt.toMillis();
-        case 'name_asc':
-            return (a.title || '').localeCompare(b.title || '');
-        case 'name_desc':
-            return (b.title || '').localeCompare(a.title || '');
-        default:
-            return 0;
-    }
-}
-
-function buildRankUpdatesForSort(cards, sortType) {
-    const updates = {};
-    cards.forEach((card, index) => {
-        updates[card.id] = rankForSort(card, index, sortType);
-    });
-    return updates;
-}
-
-function rankForSort(card, index, sortType) {
-    if (sortType === 'created_desc') {
-        return -card.createdAt.toMillis();
-    }
-    if (sortType === 'created_asc') {
-        return card.createdAt.toMillis();
-    }
-    return index * 1000;
-}
-
-function buildRankUpdatesForOrder(orderedIds) {
-    const updates = {};
-    orderedIds.forEach((cardId, index) => {
-        updates[cardId] = index * 1000;
-    });
-    return updates;
 }
 
 async function applyRankUpdates(updates) {
