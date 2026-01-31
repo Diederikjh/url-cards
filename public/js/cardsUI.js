@@ -3,7 +3,7 @@ import { getCurrentUser } from './auth.js';
 import { currentBoardId } from './boardsUI.js';
 import { onTagsUpdated, getTagByNameLower } from './tagStore.js';
 import { pickRandomTagColor, getReadableTextColor } from './tagPalette.js';
-import { buildAvailableTagOptions, cardMatchesTagFilter } from './utils/tagFilter.mjs';
+import { buildAvailableTagOptions, cardMatchesTagFilter } from './rules/tagFilter.mjs';
 import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags, commitPendingInput } from './tagsView.js';
 
 let cardService = null;

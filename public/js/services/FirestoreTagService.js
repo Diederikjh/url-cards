@@ -4,7 +4,7 @@
  */
 import { TagService } from './TagService.js';
 import { Tag } from '../models/Tag.js';
-import { computeTagUsageCounts } from '../utils/tagUsage.mjs';
+import { computeTagUsageCounts } from '../rules/tagUsage.mjs';
 
 export class FirestoreTagService extends TagService {
     constructor(db) {

@@ -5,7 +5,7 @@ let computeTagUsageCounts;
 
 beforeAll(async () => {
   const modulePath = pathToFileURL(
-    path.join(__dirname, '../public/js/utils/tagUsage.mjs')
+    path.join(__dirname, '../public/js/rules/tagUsage.mjs')
   ).href;
   const utils = await import(modulePath);
   computeTagUsageCounts = utils.computeTagUsageCounts;

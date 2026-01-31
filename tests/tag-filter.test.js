@@ -6,7 +6,7 @@ let cardMatchesTagFilter;
 
 beforeAll(async () => {
   const modulePath = pathToFileURL(
-    path.join(__dirname, '../public/js/utils/tagFilter.mjs')
+    path.join(__dirname, '../public/js/rules/tagFilter.mjs')
   ).href;
   const utils = await import(modulePath);
   buildAvailableTagOptions = utils.buildAvailableTagOptions;
