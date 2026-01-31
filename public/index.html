@@ -108,14 +108,27 @@
             <div class="board-body">
                 <main id="cardsContainer" class="cards-container"></main>
                 <aside id="tagFilterPanel" class="tag-filter-panel" aria-label="Tag filter">
-                    <div class="tag-filter-header">
-                        <h3>Filter tags</h3>
-                        <button id="clearTagFilterBtn" class="tag-filter-clear" type="button">Clear</button>
+                    <button id="tagFilterToggleBtn" class="tag-filter-toggle" type="button" aria-expanded="false">
+                        <span class="tag-filter-toggle-label">
+                            <span class="tag-filter-chevron" aria-hidden="true">
+                                <svg viewBox="0 0 16 16" width="14" height="14" focusable="false" aria-hidden="true">
+                                    <path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </span>
+                            Filter tags
+                        </span>
+                        <span id="tagFilterActiveLabel" class="tag-filter-active-label"></span>
+                    </button>
+                    <div class="tag-filter-body">
+                        <div class="tag-filter-header">
+                            <h3>Tags</h3>
+                            <button id="clearTagFilterBtn" class="tag-filter-clear" type="button">Clear</button>
+                        </div>
+                        <div id="tagFilterEmpty" class="tag-filter-empty" style="display: none;">
+                            No tags on cards yet.
+                        </div>
+                        <div id="tagFilterList" class="tag-filter-list"></div>
                     </div>
-                    <div id="tagFilterEmpty" class="tag-filter-empty" style="display: none;">
-                        No tags on cards yet.
-                    </div>
-                    <div id="tagFilterList" class="tag-filter-list"></div>
                 </aside>
             </div>
         </div>

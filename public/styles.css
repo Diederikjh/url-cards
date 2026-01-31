@@ -286,6 +286,72 @@ header h1 {
     top: 20px;
 }
 
+.tag-filter-toggle {
+    width: 100%;
+    border: none;
+    background: #f0f3f6;
+    color: #2c3e50;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.tag-filter-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.tag-filter-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #e2e8f0;
+}
+
+.tag-filter-chevron svg {
+    display: block;
+    transition: transform 0.15s ease;
+}
+
+.tag-filter-toggle[aria-expanded="false"] .tag-filter-chevron svg {
+    transform: rotate(0deg);
+}
+
+.tag-filter-toggle[aria-expanded="true"] .tag-filter-chevron svg {
+    transform: rotate(180deg);
+}
+
+.tag-filter-active-label {
+    font-size: 0.85rem;
+    color: #2c3e50;
+    background: #e2e8f0;
+    padding: 4px 8px;
+    border-radius: 999px;
+    display: none;
+}
+
+.tag-filter-panel.has-active-filter .tag-filter-active-label {
+    display: inline-flex;
+}
+
+.tag-filter-body {
+    margin-top: 14px;
+}
+
+.tag-filter-panel.is-collapsed .tag-filter-body {
+    display: none;
+}
+
 .tag-filter-header {
     display: flex;
     align-items: center;

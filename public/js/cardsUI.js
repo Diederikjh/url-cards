@@ -20,10 +20,13 @@ let tagFilterPanel;
 let tagFilterList;
 let tagFilterEmpty;
 let clearTagFilterBtn;
+let tagFilterToggleBtn;
+let tagFilterActiveLabel;
 let tagMap = new Map();
 let tagNameMap = new Map();
 let tagsUnsubscribe = null;
 let selectedTagFilterId = null;
+let isFilterPanelOpen = false;
 let dragState = {
     draggingEl: null,
     startOrder: [],
@@ -47,6 +50,8 @@ export function initCardsUI(service, tagSvc) {
     tagFilterList = document.getElementById('tagFilterList');
     tagFilterEmpty = document.getElementById('tagFilterEmpty');
     clearTagFilterBtn = document.getElementById('clearTagFilterBtn');
+    tagFilterToggleBtn = document.getElementById('tagFilterToggleBtn');
+    tagFilterActiveLabel = document.getElementById('tagFilterActiveLabel');
 
     addCardBtn.addEventListener('click', handleAddCard);
     urlInput.addEventListener('keydown', function (e) {
@@ -67,6 +72,12 @@ export function initCardsUI(service, tagSvc) {
     if (clearTagFilterBtn) {
         clearTagFilterBtn.addEventListener('click', () => setActiveTagFilter(null));
     }
+
+    if (tagFilterToggleBtn) {
+        tagFilterToggleBtn.addEventListener('click', () => setFilterPanelOpen(!isFilterPanelOpen));
+    }
+
+    setFilterPanelOpen(false);
 
     if (tagsUnsubscribe) {
         tagsUnsubscribe();
@@ -735,7 +746,18 @@ function renderTagFilterOptions(tags) {
     });
 
     updateClearButtonState();
+    updateActiveFilterLabel();
     applyTagFilterToCards();
+}
+
+function setFilterPanelOpen(isOpen) {
+    isFilterPanelOpen = Boolean(isOpen);
+    if (tagFilterPanel) {
+        tagFilterPanel.classList.toggle('is-collapsed', !isFilterPanelOpen);
+    }
+    if (tagFilterToggleBtn) {
+        tagFilterToggleBtn.setAttribute('aria-expanded', String(isFilterPanelOpen));
+    }
 }
 
 function setActiveTagFilter(tagId) {
@@ -745,6 +767,7 @@ function setActiveTagFilter(tagId) {
             option.classList.toggle('is-selected', option.dataset.tagFilterId === tagId);
         });
     }
+    updateActiveFilterLabel();
     updateClearButtonState();
     applyTagFilterToCards();
 }
@@ -752,6 +775,27 @@ function setActiveTagFilter(tagId) {
 function updateClearButtonState() {
     if (!clearTagFilterBtn) return;
     clearTagFilterBtn.disabled = !selectedTagFilterId;
+}
+
+function updateActiveFilterLabel() {
+    if (!tagFilterPanel || !tagFilterActiveLabel) return;
+    if (!selectedTagFilterId) {
+        tagFilterPanel.classList.remove('has-active-filter');
+        tagFilterActiveLabel.textContent = '';
+        return;
+    }
+    const tagName = getTagNameById(selectedTagFilterId);
+    tagFilterPanel.classList.add('has-active-filter');
+    tagFilterActiveLabel.textContent = tagName ? tagName : 'Filtered';
+}
+
+function getTagNameById(tagId) {
+    if (!tagId) return '';
+    const fromStore = tagMap.get(tagId);
+    if (fromStore && fromStore.name) return fromStore.name;
+    const option = tagFilterList?.querySelector(`[data-tag-filter-id="${tagId}"]`);
+    if (option) return option.textContent || '';
+    return '';
 }
 
 function applyTagFilterToCards() {
