@@ -2,7 +2,7 @@
 import { getCurrentUser } from './auth.js';
 import { currentBoardId } from './boardsUI.js';
 import { onTagsUpdated, getTagByNameLower } from './tagStore.js';
-import { pickRandomTagColor } from './tagPalette.js';
+import { pickRandomTagColor, getReadableTextColor } from './tagPalette.js';
 import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags, commitPendingInput } from './tagsView.js';
 
 let cardService = null;
@@ -16,9 +16,14 @@ let addCardBtn;
 let sortSelect;
 let cardsContainer;
 let currentCards = []; // Store cards for sorting logic
+let tagFilterPanel;
+let tagFilterList;
+let tagFilterEmpty;
+let clearTagFilterBtn;
 let tagMap = new Map();
 let tagNameMap = new Map();
 let tagsUnsubscribe = null;
+let selectedTagFilterId = null;
 let dragState = {
     draggingEl: null,
     startOrder: [],
@@ -38,6 +43,10 @@ export function initCardsUI(service, tagSvc) {
     addCardBtn = document.getElementById('addCardBtn');
     sortSelect = document.getElementById('sortSelect');
     cardsContainer = document.getElementById('cardsContainer');
+    tagFilterPanel = document.getElementById('tagFilterPanel');
+    tagFilterList = document.getElementById('tagFilterList');
+    tagFilterEmpty = document.getElementById('tagFilterEmpty');
+    clearTagFilterBtn = document.getElementById('clearTagFilterBtn');
 
     addCardBtn.addEventListener('click', handleAddCard);
     urlInput.addEventListener('keydown', function (e) {
@@ -55,6 +64,10 @@ export function initCardsUI(service, tagSvc) {
         cardsContainer.addEventListener('drop', handleContainerDrop);
     }
 
+    if (clearTagFilterBtn) {
+        clearTagFilterBtn.addEventListener('click', () => setActiveTagFilter(null));
+    }
+
     if (tagsUnsubscribe) {
         tagsUnsubscribe();
     }
@@ -62,6 +75,7 @@ export function initCardsUI(service, tagSvc) {
         tagMap = snapshot.tagsById;
         tagNameMap = snapshot.tagsByNameLower;
         refreshAllCardTags();
+        updateTagFilterOptions(currentCards);
     });
 }
 
@@ -85,6 +99,8 @@ export function loadCards(boardId) {
             const cardElement = createCardElement(card);
             cardsContainer.appendChild(cardElement);
         });
+        updateTagFilterOptions(cards);
+        applyTagFilterToCards();
     });
 }
 
@@ -649,6 +665,110 @@ function refreshAllCardTags() {
         }
         maybeBackfillCardTags(cardEl);
     });
+}
+
+function updateTagFilterOptions(cards) {
+    if (!tagFilterPanel || !tagFilterList || !tagFilterEmpty) return;
+    const availableTags = buildAvailableTagOptions(cards);
+    renderTagFilterOptions(availableTags);
+}
+
+function buildAvailableTagOptions(cards) {
+    const byId = new Map();
+    const list = Array.isArray(cards) ? cards : [];
+    list.forEach((card) => {
+        const cardTags = Array.isArray(card.tags) ? card.tags : [];
+        cardTags.forEach((tag) => {
+            if (!tag || !tag.id || !tag.name) return;
+            byId.set(tag.id, {
+                id: tag.id,
+                name: tag.name,
+                color: tag.color || '#ecf0f1'
+            });
+        });
+        const cardTagIds = Array.isArray(card.tagIds) ? card.tagIds : [];
+        cardTagIds.forEach((tagId) => {
+            if (!tagId) return;
+            const fromStore = tagMap.get(tagId);
+            if (!fromStore) return;
+            if (!byId.has(tagId)) {
+                byId.set(tagId, {
+                    id: fromStore.id,
+                    name: fromStore.name,
+                    color: fromStore.color || '#ecf0f1'
+                });
+            }
+        });
+    });
+
+    const options = Array.from(byId.values());
+    options.sort((a, b) => (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+    return options;
+}
+
+function renderTagFilterOptions(tags) {
+    const hasTags = tags.length > 0;
+    tagFilterList.innerHTML = '';
+    tagFilterEmpty.style.display = hasTags ? 'none' : 'block';
+    tagFilterList.style.display = hasTags ? 'flex' : 'none';
+
+    if (selectedTagFilterId && !tags.some(tag => tag.id === selectedTagFilterId)) {
+        selectedTagFilterId = null;
+    }
+
+    tags.forEach((tag) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'tag-filter-option';
+        button.dataset.tagFilterId = tag.id;
+        button.style.background = tag.color || '#ecf0f1';
+        button.style.color = getReadableTextColor(tag.color);
+        button.textContent = tag.name;
+        if (tag.id === selectedTagFilterId) {
+            button.classList.add('is-selected');
+        }
+        button.addEventListener('click', () => {
+            const next = tag.id === selectedTagFilterId ? null : tag.id;
+            setActiveTagFilter(next);
+        });
+        tagFilterList.appendChild(button);
+    });
+
+    updateClearButtonState();
+    applyTagFilterToCards();
+}
+
+function setActiveTagFilter(tagId) {
+    selectedTagFilterId = tagId;
+    if (tagFilterList) {
+        tagFilterList.querySelectorAll('.tag-filter-option').forEach((option) => {
+            option.classList.toggle('is-selected', option.dataset.tagFilterId === tagId);
+        });
+    }
+    updateClearButtonState();
+    applyTagFilterToCards();
+}
+
+function updateClearButtonState() {
+    if (!clearTagFilterBtn) return;
+    clearTagFilterBtn.disabled = !selectedTagFilterId;
+}
+
+function applyTagFilterToCards() {
+    if (!cardsContainer) return;
+    const activeId = selectedTagFilterId;
+    cardsContainer.querySelectorAll('.card').forEach((cardEl) => {
+        const matches = !activeId || cardMatchesTagFilter(cardEl, activeId);
+        cardEl.classList.toggle('is-filtered-out', !matches);
+    });
+}
+
+function cardMatchesTagFilter(cardEl, tagId) {
+    if (!tagId) return true;
+    const tagIds = getCardTagIds(cardEl);
+    if (tagIds.includes(tagId)) return true;
+    const tags = getCardTags(cardEl);
+    return tags.some(tag => tag.id === tagId);
 }
 
 function maybeBackfillCardTags(cardEl) {

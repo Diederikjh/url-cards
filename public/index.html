@@ -105,7 +105,19 @@
                     </select>
                 </div>
             </div>
-            <main id="cardsContainer" class="cards-container"></main>
+            <div class="board-body">
+                <main id="cardsContainer" class="cards-container"></main>
+                <aside id="tagFilterPanel" class="tag-filter-panel" aria-label="Tag filter">
+                    <div class="tag-filter-header">
+                        <h3>Filter tags</h3>
+                        <button id="clearTagFilterBtn" class="tag-filter-clear" type="button">Clear</button>
+                    </div>
+                    <div id="tagFilterEmpty" class="tag-filter-empty" style="display: none;">
+                        No tags on cards yet.
+                    </div>
+                    <div id="tagFilterList" class="tag-filter-list"></div>
+                </aside>
+            </div>
         </div>
 
         <!-- Public Board View -->

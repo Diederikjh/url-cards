@@ -269,6 +269,82 @@ header h1 {
     flex-wrap: wrap;
 }
 
+.board-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 20px;
+    margin-top: 20px;
+    align-items: start;
+}
+
+.tag-filter-panel {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    position: sticky;
+    top: 20px;
+}
+
+.tag-filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.tag-filter-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #2c3e50;
+    font-weight: 500;
+}
+
+.tag-filter-clear {
+    border: none;
+    background: #ecf0f1;
+    color: #2c3e50;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.tag-filter-clear:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.tag-filter-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tag-filter-empty {
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+.tag-filter-option {
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+}
+
+.tag-filter-option:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.tag-filter-option.is-selected {
+    border-color: #2c3e50;
+    box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.25);
+}
+
 #urlInput {
     flex: 1;
     max-width: 400px;
@@ -310,6 +386,14 @@ header h1 {
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 20px;
     margin-top: 20px;
+}
+
+.board-body .cards-container {
+    margin-top: 0;
+}
+
+.card.is-filtered-out {
+    display: none;
 }
 
 .card {
@@ -729,6 +813,16 @@ header h1 {
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
     color: #7f8c8d;
     margin-bottom: 16px;
+}
+
+@media (max-width: 960px) {
+    .board-body {
+        grid-template-columns: 1fr;
+    }
+
+    .tag-filter-panel {
+        position: static;
+    }
 }
 
 @media (max-width: 720px) {
