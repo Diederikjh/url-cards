@@ -23,8 +23,8 @@ Lots of help from the LLMs, as I'm not a web dev.
 
 ## Largeish TODOs
 
- - Drag/drop to re-arrange cards.
  - Reactions on cards for public view (only with logged in user)
+ - Add collaborators to a board. (Read only and edit rights)
 
 ## Architecture
 
