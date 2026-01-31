@@ -6,6 +6,7 @@ import { pickRandomTagColor, getReadableTextColor } from './tagPalette.js';
 import { buildAvailableTagOptions, cardMatchesTagFilter } from './rules/tagFilter.mjs';
 import { buildRankUpdatesForSort, buildRankUpdatesForOrder, compareCards } from './rules/cardSorting.mjs';
 import { getTagSuggestions } from './rules/tagSuggestions.mjs';
+import { normalizeTagName } from './rules/tagValidation.mjs';
 import { renderCardTagsWithFallback, enableTagEditing as enableTagEditingView, disableTagEditing as disableTagEditingView, backfillCardTags, commitPendingInput } from './tagsView.js';
 
 let cardService = null;
@@ -640,7 +641,7 @@ function disableTagEditing(cardEl) {
 
 async function getOrCreateTag(rawName) {
     if (!tagService) return null;
-    const name = rawName.trim();
+    const name = normalizeTagName(rawName);
     if (!name) return null;
     const nameLower = name.toLowerCase();
     const existing = tagNameMap.get(nameLower) || getTagByNameLower(nameLower);

@@ -2,6 +2,7 @@
 import { getCurrentUser } from './auth.js';
 import { onTagsUpdated, getTagsSnapshot } from './tagStore.js';
 import { pickRandomTagColor } from './tagPalette.js';
+import { normalizeTagName, isTagNameValid, isTagNameDuplicate } from './rules/tagValidation.mjs';
 
 let tagService = null;
 
@@ -56,17 +57,16 @@ async function handleCreateTag() {
     if (!currentUser || !tagService) return;
 
     const name = prompt('Enter tag name:');
-    if (!name || !name.trim()) return;
-    const trimmed = name.trim();
+    const trimmed = normalizeTagName(name);
+    if (!trimmed) return;
 
-    if (trimmed.length < 2 || trimmed.length > 40) {
+    if (!isTagNameValid(trimmed)) {
         alert('Tags should be 2-40 characters long.');
         return;
     }
 
     const nameLower = trimmed.toLowerCase();
-    const existing = getTagsSnapshot().tags.find(tag => tag.nameLower === nameLower);
-    if (existing) {
+    if (isTagNameDuplicate(nameLower, getTagsSnapshot().tags)) {
         alert('That tag already exists.');
         return;
     }
@@ -140,15 +140,14 @@ function renderTagsList(tags) {
         const deleteBtn = row.querySelector('.tag-delete-btn');
 
         const handleSave = async () => {
-            const nextName = nameInput.value.trim();
-            if (nextName.length < 2 || nextName.length > 40) {
+            const nextName = normalizeTagName(nameInput.value);
+            if (!isTagNameValid(nextName)) {
                 alert('Tags should be 2-40 characters long.');
                 nameInput.value = tag.name;
                 return;
             }
             const nameLower = nextName.toLowerCase();
-            const existing = getTagsSnapshot().tags.find(existingTag => existingTag.nameLower === nameLower && existingTag.id !== tag.id);
-            if (existing) {
+            if (isTagNameDuplicate(nameLower, getTagsSnapshot().tags, tag.id)) {
                 alert('That tag already exists.');
                 nameInput.value = tag.name;
                 return;

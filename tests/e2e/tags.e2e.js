@@ -84,7 +84,7 @@ test.describe('URL Cards Tag E2E Tests', () => {
     await expect(card.locator('.tag-chip', { hasText: 'bread' })).toBeVisible();
   });
 
-  test('should add existing tag via suggestion on Enter', async ({ page }) => {
+  test('should allow substring tag creation after dismissing suggestions', async ({ page }) => {
     const { card, getTagInput } = await setupCardWithEdit(page);
 
     let tagInput = await getTagInput();
@@ -92,10 +92,19 @@ test.describe('URL Cards Tag E2E Tests', () => {
     await tagInput.press('Enter');
     await expect(card.locator('.tag-chip', { hasText: 'bread' })).toBeVisible();
 
+    await ensureEditMode(card);
+    const breadChip = card.locator('.tag-chip', { hasText: 'bread' });
+    await breadChip.locator('.tag-remove-btn').waitFor({ state: 'visible', timeout: 3000 });
+    await breadChip.locator('.tag-remove-btn').click();
+    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toHaveCount(0);
+
     tagInput = await getTagInput();
     await tagInput.fill('bre');
+    await expect(card.locator('.tag-suggestion').first()).toBeVisible({ timeout: 5000 });
+    const dismissBtn = card.locator('.tag-suggestion-dismiss').first();
+    await dismissBtn.click();
     await tagInput.press('Enter');
-    await expect(card.locator('.tag-chip', { hasText: 'bread' })).toHaveCount(1);
+    await expect(card.locator('.tag-chip', { hasText: 'bre' })).toBeVisible();
   });
 
   test('should remove a tag from a card in edit mode', async ({ page }) => {
