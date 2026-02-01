@@ -463,6 +463,14 @@ header h1 {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: grab;
     touch-action: pan-y;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.card [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
 }
 
 .card:hover {

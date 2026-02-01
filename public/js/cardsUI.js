@@ -48,8 +48,8 @@ let dragState = {
     autoScrollRaf: null,
     autoScrollVelocity: 0
 };
-const POINTER_DRAG_DELAY_MS = 180;
-const POINTER_DRAG_THRESHOLD_PX = 8;
+const POINTER_DRAG_DELAY_MS = 120;
+const POINTER_DRAG_THRESHOLD_PX = 14;
 const AUTO_SCROLL_MARGIN_PX = 90;
 const AUTO_SCROLL_MAX_SPEED = 14;
 const AUTO_SCROLL_STEP_DIVISOR = 6;
