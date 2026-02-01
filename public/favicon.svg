@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="cardGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4f8cff" />
+      <stop offset="100%" stop-color="#7c4dff" />
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="26" fill="url(#cardGradient)" />
+  <rect x="22" y="28" width="84" height="60" rx="12" fill="#ffffff" opacity="0.92" />
+  <rect x="30" y="40" width="52" height="8" rx="4" fill="#3b82f6" />
+  <rect x="30" y="56" width="64" height="8" rx="4" fill="#93c5fd" />
+  <rect x="30" y="72" width="44" height="8" rx="4" fill="#c7d2fe" />
+  <circle cx="88" cy="86" r="12" fill="#4f46e5" />
+  <path d="M83 86h10" stroke="#fff" stroke-width="4" stroke-linecap="round" />
+  <path d="M88 81v10" stroke="#fff" stroke-width="4" stroke-linecap="round" />
+</svg>
