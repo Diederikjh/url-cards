@@ -206,7 +206,7 @@ function createCardElement(card) {
         cardDiv.addEventListener('pointerdown', handlePointerDown, { passive: false });
         cardDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
         cardDiv.addEventListener('contextmenu', (event) => {
-            if (!supportsNativeDrag()) {
+            if (!supportsNativeDrag() && !event.target.closest('a')) {
                 event.preventDefault();
             }
         });
