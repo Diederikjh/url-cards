@@ -38,18 +38,12 @@ let dragState = {
     handleKeyDown: null,
     didCancel: false,
     pointerId: null,
-    pendingPointerTimer: null,
-    pendingPointerTarget: null,
     pointerCaptureTarget: null,
-    pointerStartX: 0,
-    pointerStartY: 0,
     lastPointer: null,
     isPointerDrag: false,
     autoScrollRaf: null,
     autoScrollVelocity: 0
 };
-const POINTER_DRAG_DELAY_MS = 120;
-const POINTER_DRAG_THRESHOLD_PX = 14;
 const AUTO_SCROLL_MARGIN_PX = 90;
 const AUTO_SCROLL_MAX_SPEED = 14;
 const AUTO_SCROLL_STEP_DIVISOR = 6;
@@ -61,10 +55,6 @@ function supportsNativeDrag() {
 
 function isInteractiveTarget(target) {
     return !!target.closest('a, button, input, textarea, select, [contenteditable="true"]');
-}
-
-function isTouchDevice() {
-    return window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
 }
 
 /**
@@ -203,8 +193,6 @@ function createCardElement(card) {
             cardDiv.addEventListener('dragover', handleCardDragOver);
             cardDiv.addEventListener('drop', handleCardDrop);
         }
-        cardDiv.addEventListener('pointerdown', handlePointerDown, { passive: false });
-        cardDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
         cardDiv.addEventListener('contextmenu', (event) => {
             if (!supportsNativeDrag() && !event.target.closest('a')) {
                 event.preventDefault();
@@ -215,6 +203,10 @@ function createCardElement(card) {
     const imageHtml = card.imageUrl ?
         `<div class="card-image"><img src="${card.imageUrl}" alt="${card.title}" onerror="this.parentElement.style.display='none'"></div>` :
         '';
+
+    const dragHandleHtml = isReadOnly ? '' : `
+        <button class="card-drag-handle" type="button" aria-label="Reorder card" data-drag-handle></button>
+    `;
 
     // In read-only mode, don't show edit/delete buttons
     const actionsHtml = isReadOnly ? '' : `
@@ -228,13 +220,22 @@ function createCardElement(card) {
         ${imageHtml}
         <div class="card-content">
             <div class="card-url"><a href="${card.url}" target="_blank" rel="noopener noreferrer">${card.url}</a></div>
-            <div class="card-title" data-field="title">${card.title}</div>
+            <div class="card-title-row">
+                <div class="card-title" data-field="title">${card.title}</div>
+                ${dragHandleHtml}
+            </div>
             <div class="card-description" data-field="description">${card.description || ''}</div>
             <div class="card-tags" data-card-tags></div>
             ${actionsHtml}
         </div>
     `;
     renderCardTagsWithFallbackWrapper(cardDiv, getCardTags(cardDiv), false);
+    if (!isReadOnly) {
+        const handle = cardDiv.querySelector('[data-drag-handle]');
+        if (handle) {
+            handle.addEventListener('pointerdown', handlePointerDown, { passive: false });
+        }
+    }
     return cardDiv;
 }
 
@@ -334,130 +335,29 @@ function handleContainerDrop(event) {
     event.preventDefault();
 }
 
-function handleTouchStart(event) {
-    if (isReadOnly) return;
-    if (!isTouchDevice()) return;
-    if (isInteractiveTarget(event.target)) return;
-    if (event.currentTarget?.dataset?.dragDisabled === 'true') return;
-    if (editingCardId) {
-        window.cancelCard(editingCardId);
-    }
-    if (event.touches.length !== 1) return;
-
-    const touch = event.touches[0];
-    dragState.pointerId = null;
-    dragState.pointerStartX = touch.clientX;
-    dragState.pointerStartY = touch.clientY;
-    dragState.pendingPointerTarget = event.currentTarget;
-    dragState.lastPointer = { x: touch.clientX, y: touch.clientY };
-
-    dragState.pendingPointerTimer = window.setTimeout(() => {
-        if (!dragState.pendingPointerTarget) return;
-        beginPointerDrag(dragState.pendingPointerTarget);
-        document.addEventListener('touchmove', handleTouchMove, { passive: false });
-        document.addEventListener('touchend', handleTouchEnd, { passive: true });
-        document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
-    }, POINTER_DRAG_DELAY_MS);
-
-    document.addEventListener('touchmove', handleTouchMoveGuard, { passive: false });
-    document.addEventListener('touchend', handleTouchEndGuard, { passive: true });
-    document.addEventListener('touchcancel', handleTouchCancelGuard, { passive: true });
-}
-
-function handleTouchMoveGuard(event) {
-    if (!dragState.pendingPointerTimer) return;
-    if (event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    dragState.lastPointer = { x: touch.clientX, y: touch.clientY };
-    const dx = touch.clientX - dragState.pointerStartX;
-    const dy = touch.clientY - dragState.pointerStartY;
-    if (Math.hypot(dx, dy) > POINTER_DRAG_THRESHOLD_PX) {
-        clearPendingPointerDrag();
-        removeTouchGuards();
-    }
-}
-
-function handleTouchEndGuard() {
-    if (!dragState.pendingPointerTimer) return;
-    clearPendingPointerDrag();
-    removeTouchGuards();
-}
-
-function handleTouchCancelGuard() {
-    if (!dragState.pendingPointerTimer) return;
-    clearPendingPointerDrag();
-    removeTouchGuards();
-}
-
-function removeTouchGuards() {
-    document.removeEventListener('touchmove', handleTouchMoveGuard);
-    document.removeEventListener('touchend', handleTouchEndGuard);
-    document.removeEventListener('touchcancel', handleTouchCancelGuard);
-}
-
-function handleTouchMove(event) {
-    if (!dragState.isPointerDrag || !dragState.draggingEl) return;
-    if (event.touches.length !== 1) return;
-    const touch = event.touches[0];
-    dragState.lastPointer = { x: touch.clientX, y: touch.clientY };
-    event.preventDefault();
-    performReorderFromPoint(touch.clientX, touch.clientY);
-    updateAutoScroll(touch.clientY);
-}
-
-function handleTouchEnd() {
-    if (dragState.isPointerDrag) {
-        finishPointerDrag();
-    }
-    removeTouchDragListeners();
-}
-
-function handleTouchCancel() {
-    if (dragState.isPointerDrag) {
-        cancelDrag();
-    }
-    removeTouchDragListeners();
-}
-
-function removeTouchDragListeners() {
-    document.removeEventListener('touchmove', handleTouchMove);
-    document.removeEventListener('touchend', handleTouchEnd);
-    document.removeEventListener('touchcancel', handleTouchCancel);
-}
-
 function handlePointerDown(event) {
     if (isReadOnly) return;
-    if (event.pointerType === 'mouse') return;
-    if (event.pointerType === 'touch') return;
-    if (isInteractiveTarget(event.target)) return;
-    if (event.currentTarget?.dataset?.dragDisabled === 'true') return;
+    // Handle-initiated drag across pointer types.
+    if (!event.currentTarget.hasAttribute('data-drag-handle') && isInteractiveTarget(event.target)) return;
+    const card = event.currentTarget.closest('.card');
+    if (!card || card.dataset.dragDisabled === 'true') return;
     if (editingCardId) {
         window.cancelCard(editingCardId);
     }
 
     dragState.pointerId = event.pointerId;
-    dragState.pointerStartX = event.clientX;
-    dragState.pointerStartY = event.clientY;
-    dragState.pendingPointerTarget = event.currentTarget;
     dragState.lastPointer = { x: event.clientX, y: event.clientY };
     dragState.pointerCaptureTarget = event.currentTarget;
     if (dragState.pointerCaptureTarget.setPointerCapture) {
         dragState.pointerCaptureTarget.setPointerCapture(event.pointerId);
     }
-
-    dragState.pendingPointerTimer = window.setTimeout(() => {
-        if (!dragState.pendingPointerTarget) return;
-        beginPointerDrag(dragState.pendingPointerTarget);
-    }, POINTER_DRAG_DELAY_MS);
-
+    beginPointerDrag(card);
     document.addEventListener('pointermove', handlePointerMove, { passive: false });
     document.addEventListener('pointerup', handlePointerUp, { passive: true });
     document.addEventListener('pointercancel', handlePointerCancel, { passive: true });
 }
 
 function beginPointerDrag(target) {
-    dragState.pendingPointerTimer = null;
-    dragState.pendingPointerTarget = null;
     dragState.draggingEl = target;
     dragState.startOrder = getCurrentOrderIds();
     dragState.didCancel = false;
@@ -470,15 +370,6 @@ function handlePointerMove(event) {
     if (event.pointerId !== dragState.pointerId) return;
     dragState.lastPointer = { x: event.clientX, y: event.clientY };
 
-    if (dragState.pendingPointerTimer) {
-        const dx = event.clientX - dragState.pointerStartX;
-        const dy = event.clientY - dragState.pointerStartY;
-        if (Math.hypot(dx, dy) > POINTER_DRAG_THRESHOLD_PX) {
-            clearPendingPointerDrag();
-        }
-        return;
-    }
-
     if (!dragState.isPointerDrag || !dragState.draggingEl) return;
     event.preventDefault();
     performReorderFromPoint(event.clientX, event.clientY);
@@ -487,10 +378,6 @@ function handlePointerMove(event) {
 
 function handlePointerUp(event) {
     if (event.pointerId !== dragState.pointerId) return;
-    if (dragState.pendingPointerTimer) {
-        clearPendingPointerDrag();
-        return;
-    }
     if (dragState.isPointerDrag) {
         finishPointerDrag();
     }
@@ -499,24 +386,9 @@ function handlePointerUp(event) {
 
 function handlePointerCancel(event) {
     if (event.pointerId !== dragState.pointerId) return;
-    if (dragState.pendingPointerTimer) {
-        clearPendingPointerDrag();
-        return;
-    }
     if (dragState.isPointerDrag) {
         cancelDrag();
     }
-    clearPointerListeners();
-}
-
-function clearPendingPointerDrag() {
-    if (dragState.pendingPointerTimer) {
-        clearTimeout(dragState.pendingPointerTimer);
-    }
-    dragState.pendingPointerTimer = null;
-    dragState.pendingPointerTarget = null;
-    dragState.lastPointer = null;
-    removeTouchGuards();
     clearPointerListeners();
 }
 
@@ -546,7 +418,6 @@ function finishPointerDrag() {
     dragState.startOrder = [];
     dragState.didCancel = false;
     dragState.isPointerDrag = false;
-    removeTouchDragListeners();
 
     if (orderChanged) {
         persistOrderFromDom();
@@ -620,8 +491,6 @@ function cancelDrag() {
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
     stopAutoScroll();
-    removeTouchDragListeners();
-    removeTouchGuards();
     if (dragState.handleKeyDown) {
         document.removeEventListener('keydown', dragState.handleKeyDown);
         dragState.handleKeyDown = null;
