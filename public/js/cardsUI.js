@@ -199,7 +199,12 @@ function createCardElement(card) {
             cardDiv.addEventListener('dragover', handleCardDragOver);
             cardDiv.addEventListener('drop', handleCardDrop);
         }
-        cardDiv.addEventListener('pointerdown', handlePointerDown, { passive: true });
+        cardDiv.addEventListener('pointerdown', handlePointerDown, { passive: false });
+        cardDiv.addEventListener('contextmenu', (event) => {
+            if (!supportsNativeDrag()) {
+                event.preventDefault();
+            }
+        });
     }
 
     const imageHtml = card.imageUrl ?

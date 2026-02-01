@@ -462,6 +462,7 @@ header h1 {
     overflow: hidden;
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     cursor: grab;
+    touch-action: pan-y;
 }
 
 .card:hover {
