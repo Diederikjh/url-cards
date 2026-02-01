@@ -91,7 +91,7 @@ function createPublicCardElement(card) {
         <div class="card-content">
             <div class="card-url"><a href="${card.url}" target="_blank" rel="noopener noreferrer">${card.url}</a></div>
             <div class="card-title">${card.title}</div>
-            <div class="card-description">${card.description}</div>
+            <div class="card-description">${card.description || ''}</div>
             <div class="card-tags" data-public-card-tags></div>
         </div>
     `;

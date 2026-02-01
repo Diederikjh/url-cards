@@ -556,6 +556,11 @@ header h1 {
     white-space: pre-wrap;
 }
 
+.card-description[contenteditable="true"]:empty::before {
+    content: attr(data-placeholder);
+    color: #95a5a6;
+}
+
 .card-tags {
     margin-top: 12px;
     display: flex;

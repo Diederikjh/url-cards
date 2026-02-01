@@ -229,7 +229,7 @@ function createCardElement(card) {
         <div class="card-content">
             <div class="card-url"><a href="${card.url}" target="_blank" rel="noopener noreferrer">${card.url}</a></div>
             <div class="card-title" data-field="title">${card.title}</div>
-            <div class="card-description" data-field="description">${card.description}</div>
+            <div class="card-description" data-field="description">${card.description || ''}</div>
             <div class="card-tags" data-card-tags></div>
             ${actionsHtml}
         </div>
@@ -720,7 +720,7 @@ async function extractMetadata(url) {
         console.warn('Firebase Function failed, using fallback:', error);
         return {
             title: new URL(url).hostname,
-            description: 'Click to edit description'
+            description: ''
         };
     }
 }
@@ -752,6 +752,7 @@ let editingCardId = null;
 let originalTitle = null;
 let originalDescription = null;
 let editHandlers = {}; // Store handlers by cardId
+const DESCRIPTION_PLACEHOLDER = 'Click to edit description';
 
 // Export card editing functions to window for onclick handlers
 window.editCard = function (cardId) {
@@ -775,6 +776,7 @@ window.editCard = function (cardId) {
     card.dataset.dragDisabled = 'true';
     titleEl.contentEditable = true;
     descEl.contentEditable = true;
+    descEl.dataset.placeholder = DESCRIPTION_PLACEHOLDER;
     titleEl.focus();
 
     editBtn.textContent = 'Save';
@@ -868,6 +870,7 @@ window.exitEditMode = function (cardId) {
 
     titleEl.contentEditable = false;
     descEl.contentEditable = false;
+    delete descEl.dataset.placeholder;
     if (!isReadOnly) {
         card.draggable = supportsNativeDrag();
         card.dataset.dragDisabled = 'false';
