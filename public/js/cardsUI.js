@@ -36,8 +36,32 @@ let dragState = {
     draggingEl: null,
     startOrder: [],
     handleKeyDown: null,
-    didCancel: false
+    didCancel: false,
+    pointerId: null,
+    pendingPointerTimer: null,
+    pendingPointerTarget: null,
+    pointerCaptureTarget: null,
+    pointerStartX: 0,
+    pointerStartY: 0,
+    lastPointer: null,
+    isPointerDrag: false,
+    autoScrollRaf: null,
+    autoScrollVelocity: 0
 };
+const POINTER_DRAG_DELAY_MS = 180;
+const POINTER_DRAG_THRESHOLD_PX = 8;
+const AUTO_SCROLL_MARGIN_PX = 90;
+const AUTO_SCROLL_MAX_SPEED = 14;
+const AUTO_SCROLL_STEP_DIVISOR = 6;
+
+function supportsNativeDrag() {
+    if (!window.matchMedia) return true;
+    return !window.matchMedia('(pointer: coarse)').matches;
+}
+
+function isInteractiveTarget(target) {
+    return !!target.closest('a, button, input, textarea, select, [contenteditable="true"]');
+}
 
 /**
  * Initialize the cards UI
@@ -159,6 +183,7 @@ function createCardElement(card) {
     const cardDiv = document.createElement('div');
     cardDiv.className = 'card';
     cardDiv.setAttribute('data-card-id', card.id);
+    cardDiv.dataset.dragDisabled = 'false';
     const tags = Array.isArray(card.tags) ? card.tags : [];
     const tagIds = Array.isArray(card.tagIds) && card.tagIds.length > 0
         ? card.tagIds
@@ -166,11 +191,15 @@ function createCardElement(card) {
     cardDiv.dataset.tagIds = JSON.stringify(tagIds);
     cardDiv.dataset.tags = JSON.stringify(tags);
     if (!isReadOnly) {
-        cardDiv.draggable = true;
-        cardDiv.addEventListener('dragstart', handleDragStart);
-        cardDiv.addEventListener('dragend', handleDragEnd);
-        cardDiv.addEventListener('dragover', handleCardDragOver);
-        cardDiv.addEventListener('drop', handleCardDrop);
+        const allowNativeDrag = supportsNativeDrag();
+        cardDiv.draggable = allowNativeDrag;
+        if (allowNativeDrag) {
+            cardDiv.addEventListener('dragstart', handleDragStart);
+            cardDiv.addEventListener('dragend', handleDragEnd);
+            cardDiv.addEventListener('dragover', handleCardDragOver);
+            cardDiv.addEventListener('drop', handleCardDrop);
+        }
+        cardDiv.addEventListener('pointerdown', handlePointerDown, { passive: true });
     }
 
     const imageHtml = card.imageUrl ?
@@ -201,7 +230,7 @@ function createCardElement(card) {
 
 function handleDragStart(event) {
     if (isReadOnly) return;
-    if (event.target.closest('a, button, input, textarea, select, [contenteditable="true"]')) {
+    if (isInteractiveTarget(event.target)) {
         event.preventDefault();
         return;
     }
@@ -212,6 +241,7 @@ function handleDragStart(event) {
     dragState.draggingEl = event.currentTarget;
     dragState.startOrder = getCurrentOrderIds();
     dragState.didCancel = false;
+    dragState.isPointerDrag = false;
     dragState.draggingEl.classList.add('dragging');
     cardsContainer.classList.add('drag-active');
 
@@ -232,6 +262,7 @@ function handleDragEnd(event) {
     if (!dragState.draggingEl) return;
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
+    stopAutoScroll();
     if (dragState.handleKeyDown) {
         document.removeEventListener('keydown', dragState.handleKeyDown);
         dragState.handleKeyDown = null;
@@ -260,6 +291,7 @@ function handleDragEnd(event) {
 function handleCardDragOver(event) {
     event.preventDefault();
     if (!dragState.draggingEl) return;
+    updateAutoScroll(event.clientY);
 
     const targetCard = event.currentTarget;
     if (targetCard === dragState.draggingEl) return;
@@ -280,6 +312,7 @@ function handleCardDrop(event) {
 function handleContainerDragOver(event) {
     event.preventDefault();
     if (!dragState.draggingEl) return;
+    updateAutoScroll(event.clientY);
 
     const target = event.target;
     if (target === cardsContainer && cardsContainer.lastElementChild !== dragState.draggingEl) {
@@ -291,18 +324,205 @@ function handleContainerDrop(event) {
     event.preventDefault();
 }
 
+function handlePointerDown(event) {
+    if (isReadOnly) return;
+    if (event.pointerType === 'mouse') return;
+    if (isInteractiveTarget(event.target)) return;
+    if (event.currentTarget?.dataset?.dragDisabled === 'true') return;
+    if (editingCardId) {
+        window.cancelCard(editingCardId);
+    }
+
+    dragState.pointerId = event.pointerId;
+    dragState.pointerStartX = event.clientX;
+    dragState.pointerStartY = event.clientY;
+    dragState.pendingPointerTarget = event.currentTarget;
+    dragState.lastPointer = { x: event.clientX, y: event.clientY };
+    dragState.pointerCaptureTarget = event.currentTarget;
+    if (dragState.pointerCaptureTarget.setPointerCapture) {
+        dragState.pointerCaptureTarget.setPointerCapture(event.pointerId);
+    }
+
+    dragState.pendingPointerTimer = window.setTimeout(() => {
+        if (!dragState.pendingPointerTarget) return;
+        beginPointerDrag(dragState.pendingPointerTarget);
+    }, POINTER_DRAG_DELAY_MS);
+
+    document.addEventListener('pointermove', handlePointerMove, { passive: false });
+    document.addEventListener('pointerup', handlePointerUp, { passive: true });
+    document.addEventListener('pointercancel', handlePointerCancel, { passive: true });
+}
+
+function beginPointerDrag(target) {
+    dragState.pendingPointerTimer = null;
+    dragState.pendingPointerTarget = null;
+    dragState.draggingEl = target;
+    dragState.startOrder = getCurrentOrderIds();
+    dragState.didCancel = false;
+    dragState.isPointerDrag = true;
+    dragState.draggingEl.classList.add('dragging');
+    cardsContainer.classList.add('drag-active');
+}
+
+function handlePointerMove(event) {
+    if (event.pointerId !== dragState.pointerId) return;
+    dragState.lastPointer = { x: event.clientX, y: event.clientY };
+
+    if (dragState.pendingPointerTimer) {
+        const dx = event.clientX - dragState.pointerStartX;
+        const dy = event.clientY - dragState.pointerStartY;
+        if (Math.hypot(dx, dy) > POINTER_DRAG_THRESHOLD_PX) {
+            clearPendingPointerDrag();
+        }
+        return;
+    }
+
+    if (!dragState.isPointerDrag || !dragState.draggingEl) return;
+    event.preventDefault();
+    performReorderFromPoint(event.clientX, event.clientY);
+    updateAutoScroll(event.clientY);
+}
+
+function handlePointerUp(event) {
+    if (event.pointerId !== dragState.pointerId) return;
+    if (dragState.pendingPointerTimer) {
+        clearPendingPointerDrag();
+        return;
+    }
+    if (dragState.isPointerDrag) {
+        finishPointerDrag();
+    }
+    clearPointerListeners();
+}
+
+function handlePointerCancel(event) {
+    if (event.pointerId !== dragState.pointerId) return;
+    if (dragState.pendingPointerTimer) {
+        clearPendingPointerDrag();
+        return;
+    }
+    if (dragState.isPointerDrag) {
+        cancelDrag();
+    }
+    clearPointerListeners();
+}
+
+function clearPendingPointerDrag() {
+    if (dragState.pendingPointerTimer) {
+        clearTimeout(dragState.pendingPointerTimer);
+    }
+    dragState.pendingPointerTimer = null;
+    dragState.pendingPointerTarget = null;
+    dragState.lastPointer = null;
+    clearPointerListeners();
+}
+
+function clearPointerListeners() {
+    document.removeEventListener('pointermove', handlePointerMove);
+    document.removeEventListener('pointerup', handlePointerUp);
+    document.removeEventListener('pointercancel', handlePointerCancel);
+    if (dragState.pointerCaptureTarget?.releasePointerCapture && dragState.pointerId !== null) {
+        dragState.pointerCaptureTarget.releasePointerCapture(dragState.pointerId);
+    }
+    dragState.pointerId = null;
+    dragState.pointerCaptureTarget = null;
+}
+
+function finishPointerDrag() {
+    if (!dragState.draggingEl) return;
+    dragState.draggingEl.classList.remove('dragging');
+    cardsContainer.classList.remove('drag-active');
+    stopAutoScroll();
+
+    const endOrder = getCurrentOrderIds();
+    const orderChanged = !dragState.didCancel &&
+        endOrder.length === dragState.startOrder.length &&
+        endOrder.some((id, idx) => id !== dragState.startOrder[idx]);
+
+    dragState.draggingEl = null;
+    dragState.startOrder = [];
+    dragState.didCancel = false;
+    dragState.isPointerDrag = false;
+
+    if (orderChanged) {
+        persistOrderFromDom();
+    }
+}
+
+function performReorderFromPoint(clientX, clientY) {
+    const target = document.elementFromPoint(clientX, clientY);
+    const targetCard = target ? target.closest('.card') : null;
+    if (!targetCard || targetCard === dragState.draggingEl) return;
+
+    const rect = targetCard.getBoundingClientRect();
+    const shouldInsertAfter = (clientY - rect.top) > rect.height / 2;
+    const referenceNode = shouldInsertAfter ? targetCard.nextSibling : targetCard;
+    if (referenceNode !== dragState.draggingEl) {
+        cardsContainer.insertBefore(dragState.draggingEl, referenceNode);
+    }
+}
+
+function updateAutoScroll(clientY) {
+    if (!dragState.draggingEl) return;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    let velocity = 0;
+    if (clientY < AUTO_SCROLL_MARGIN_PX) {
+        velocity = -Math.min(
+            AUTO_SCROLL_MAX_SPEED,
+            Math.ceil((AUTO_SCROLL_MARGIN_PX - clientY) / AUTO_SCROLL_STEP_DIVISOR)
+        );
+    } else if (clientY > viewportHeight - AUTO_SCROLL_MARGIN_PX) {
+        velocity = Math.min(
+            AUTO_SCROLL_MAX_SPEED,
+            Math.ceil((clientY - (viewportHeight - AUTO_SCROLL_MARGIN_PX)) / AUTO_SCROLL_STEP_DIVISOR)
+        );
+    }
+
+    if (velocity === dragState.autoScrollVelocity) return;
+    dragState.autoScrollVelocity = velocity;
+    if (velocity === 0) {
+        stopAutoScroll();
+        return;
+    }
+    if (!dragState.autoScrollRaf) {
+        dragState.autoScrollRaf = requestAnimationFrame(runAutoScroll);
+    }
+}
+
+function runAutoScroll() {
+    if (!dragState.autoScrollVelocity) {
+        dragState.autoScrollRaf = null;
+        return;
+    }
+    window.scrollBy(0, dragState.autoScrollVelocity);
+    if (dragState.lastPointer) {
+        performReorderFromPoint(dragState.lastPointer.x, dragState.lastPointer.y);
+    }
+    dragState.autoScrollRaf = requestAnimationFrame(runAutoScroll);
+}
+
+function stopAutoScroll() {
+    dragState.autoScrollVelocity = 0;
+    if (dragState.autoScrollRaf) {
+        cancelAnimationFrame(dragState.autoScrollRaf);
+        dragState.autoScrollRaf = null;
+    }
+}
+
 function cancelDrag() {
     if (!dragState.draggingEl) return;
     dragState.didCancel = true;
     restoreOrder(dragState.startOrder);
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
+    stopAutoScroll();
     if (dragState.handleKeyDown) {
         document.removeEventListener('keydown', dragState.handleKeyDown);
         dragState.handleKeyDown = null;
     }
     dragState.draggingEl = null;
     dragState.startOrder = [];
+    dragState.isPointerDrag = false;
 }
 
 function getCurrentOrderIds() {
@@ -446,6 +666,7 @@ window.editCard = function (cardId) {
     const originalTags = tags.map(tag => ({ ...tag }));
 
     card.draggable = false;
+    card.dataset.dragDisabled = 'true';
     titleEl.contentEditable = true;
     descEl.contentEditable = true;
     titleEl.focus();
@@ -542,7 +763,8 @@ window.exitEditMode = function (cardId) {
     titleEl.contentEditable = false;
     descEl.contentEditable = false;
     if (!isReadOnly) {
-        card.draggable = true;
+        card.draggable = supportsNativeDrag();
+        card.dataset.dragDisabled = 'false';
     }
 
     if (btn) {

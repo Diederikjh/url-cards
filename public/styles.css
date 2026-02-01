@@ -473,6 +473,10 @@ header h1 {
     transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 
+.cards-container.drag-active {
+    touch-action: none;
+}
+
 .card.dragging {
     opacity: 0.6;
     transform: scale(0.98);
