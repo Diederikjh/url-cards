@@ -63,6 +63,10 @@ function isInteractiveTarget(target) {
     return !!target.closest('a, button, input, textarea, select, [contenteditable="true"]');
 }
 
+function isTouchDevice() {
+    return window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+}
+
 /**
  * Initialize the cards UI
  * @param {CardService} service - The card service to use
@@ -200,6 +204,7 @@ function createCardElement(card) {
             cardDiv.addEventListener('drop', handleCardDrop);
         }
         cardDiv.addEventListener('pointerdown', handlePointerDown, { passive: false });
+        cardDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
         cardDiv.addEventListener('contextmenu', (event) => {
             if (!supportsNativeDrag()) {
                 event.preventDefault();
@@ -329,9 +334,101 @@ function handleContainerDrop(event) {
     event.preventDefault();
 }
 
+function handleTouchStart(event) {
+    if (isReadOnly) return;
+    if (!isTouchDevice()) return;
+    if (isInteractiveTarget(event.target)) return;
+    if (event.currentTarget?.dataset?.dragDisabled === 'true') return;
+    if (editingCardId) {
+        window.cancelCard(editingCardId);
+    }
+    if (event.touches.length !== 1) return;
+
+    const touch = event.touches[0];
+    dragState.pointerId = null;
+    dragState.pointerStartX = touch.clientX;
+    dragState.pointerStartY = touch.clientY;
+    dragState.pendingPointerTarget = event.currentTarget;
+    dragState.lastPointer = { x: touch.clientX, y: touch.clientY };
+
+    dragState.pendingPointerTimer = window.setTimeout(() => {
+        if (!dragState.pendingPointerTarget) return;
+        beginPointerDrag(dragState.pendingPointerTarget);
+        document.addEventListener('touchmove', handleTouchMove, { passive: false });
+        document.addEventListener('touchend', handleTouchEnd, { passive: true });
+        document.addEventListener('touchcancel', handleTouchCancel, { passive: true });
+    }, POINTER_DRAG_DELAY_MS);
+
+    document.addEventListener('touchmove', handleTouchMoveGuard, { passive: false });
+    document.addEventListener('touchend', handleTouchEndGuard, { passive: true });
+    document.addEventListener('touchcancel', handleTouchCancelGuard, { passive: true });
+}
+
+function handleTouchMoveGuard(event) {
+    if (!dragState.pendingPointerTimer) return;
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    dragState.lastPointer = { x: touch.clientX, y: touch.clientY };
+    const dx = touch.clientX - dragState.pointerStartX;
+    const dy = touch.clientY - dragState.pointerStartY;
+    if (Math.hypot(dx, dy) > POINTER_DRAG_THRESHOLD_PX) {
+        clearPendingPointerDrag();
+        removeTouchGuards();
+    }
+}
+
+function handleTouchEndGuard() {
+    if (!dragState.pendingPointerTimer) return;
+    clearPendingPointerDrag();
+    removeTouchGuards();
+}
+
+function handleTouchCancelGuard() {
+    if (!dragState.pendingPointerTimer) return;
+    clearPendingPointerDrag();
+    removeTouchGuards();
+}
+
+function removeTouchGuards() {
+    document.removeEventListener('touchmove', handleTouchMoveGuard);
+    document.removeEventListener('touchend', handleTouchEndGuard);
+    document.removeEventListener('touchcancel', handleTouchCancelGuard);
+}
+
+function handleTouchMove(event) {
+    if (!dragState.isPointerDrag || !dragState.draggingEl) return;
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    dragState.lastPointer = { x: touch.clientX, y: touch.clientY };
+    event.preventDefault();
+    performReorderFromPoint(touch.clientX, touch.clientY);
+    updateAutoScroll(touch.clientY);
+}
+
+function handleTouchEnd() {
+    if (dragState.isPointerDrag) {
+        finishPointerDrag();
+    }
+    removeTouchDragListeners();
+}
+
+function handleTouchCancel() {
+    if (dragState.isPointerDrag) {
+        cancelDrag();
+    }
+    removeTouchDragListeners();
+}
+
+function removeTouchDragListeners() {
+    document.removeEventListener('touchmove', handleTouchMove);
+    document.removeEventListener('touchend', handleTouchEnd);
+    document.removeEventListener('touchcancel', handleTouchCancel);
+}
+
 function handlePointerDown(event) {
     if (isReadOnly) return;
     if (event.pointerType === 'mouse') return;
+    if (event.pointerType === 'touch') return;
     if (isInteractiveTarget(event.target)) return;
     if (event.currentTarget?.dataset?.dragDisabled === 'true') return;
     if (editingCardId) {
@@ -419,6 +516,7 @@ function clearPendingPointerDrag() {
     dragState.pendingPointerTimer = null;
     dragState.pendingPointerTarget = null;
     dragState.lastPointer = null;
+    removeTouchGuards();
     clearPointerListeners();
 }
 
@@ -448,6 +546,7 @@ function finishPointerDrag() {
     dragState.startOrder = [];
     dragState.didCancel = false;
     dragState.isPointerDrag = false;
+    removeTouchDragListeners();
 
     if (orderChanged) {
         persistOrderFromDom();
@@ -521,6 +620,8 @@ function cancelDrag() {
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
     stopAutoScroll();
+    removeTouchDragListeners();
+    removeTouchGuards();
     if (dragState.handleKeyDown) {
         document.removeEventListener('keydown', dragState.handleKeyDown);
         dragState.handleKeyDown = null;
