@@ -396,7 +396,9 @@ function beginPointerDrag(target) {
 
 function handlePointerMove(event) {
     if (event.pointerId !== dragState.pointerId) return;
+    const prevY = dragState.lastPointer ? dragState.lastPointer.y : null;
     dragState.lastPointer = { x: event.clientX, y: event.clientY };
+    const deltaY = prevY === null ? 0 : event.clientY - prevY;
 
     if (dragState.pendingPointerTimer) {
         const dx = event.clientX - dragState.pointerStartX;
@@ -411,7 +413,7 @@ function handlePointerMove(event) {
     if (!dragState.isPointerDrag || !dragState.draggingEl) return;
     event.preventDefault();
     performReorderFromPoint(event.clientX, event.clientY);
-    updateAutoScroll(event.clientY);
+    updateAutoScroll(event.clientY, deltaY);
 }
 
 function handlePointerUp(event) {
@@ -515,19 +517,28 @@ function performReorderFromPoint(clientX, clientY) {
     }
 }
 
-function updateAutoScroll(clientY) {
+function updateAutoScroll(clientY, deltaY = 0) {
     if (!dragState.draggingEl) return;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const isZoomed = cardsContainer?.classList?.contains('drag-zoom');
+    const isMovingUp = deltaY < -1;
+    const isMovingDown = deltaY > 1;
+    const zoomTopMargin = isZoomed && isMovingUp
+        ? Math.max(AUTO_SCROLL_MARGIN_TOP_PX, Math.floor(viewportHeight * 0.45))
+        : AUTO_SCROLL_MARGIN_TOP_PX;
+    const zoomBottomMargin = isZoomed && isMovingDown
+        ? Math.max(AUTO_SCROLL_MARGIN_BOTTOM_PX, Math.floor(viewportHeight * 0.35))
+        : AUTO_SCROLL_MARGIN_BOTTOM_PX;
     let velocity = 0;
-    if (clientY < AUTO_SCROLL_MARGIN_TOP_PX) {
+    if (clientY < zoomTopMargin) {
         velocity = -Math.min(
             AUTO_SCROLL_MAX_SPEED,
-            Math.ceil((AUTO_SCROLL_MARGIN_TOP_PX - clientY) / AUTO_SCROLL_STEP_DIVISOR)
+            Math.ceil((zoomTopMargin - clientY) / AUTO_SCROLL_STEP_DIVISOR)
         );
-    } else if (clientY > viewportHeight - AUTO_SCROLL_MARGIN_BOTTOM_PX) {
+    } else if (clientY > viewportHeight - zoomBottomMargin) {
         velocity = Math.min(
             AUTO_SCROLL_MAX_SPEED,
-            Math.ceil((clientY - (viewportHeight - AUTO_SCROLL_MARGIN_BOTTOM_PX)) / AUTO_SCROLL_STEP_DIVISOR)
+            Math.ceil((clientY - (viewportHeight - zoomBottomMargin)) / AUTO_SCROLL_STEP_DIVISOR)
         );
     }
 
