@@ -486,8 +486,26 @@ function finishPointerDrag() {
 
 function performReorderFromPoint(clientX, clientY) {
     const target = document.elementFromPoint(clientX, clientY);
-    const targetCard = target ? target.closest('.card') : null;
-    if (!targetCard || targetCard === dragState.draggingEl) return;
+    let targetCard = target ? target.closest('.card') : null;
+    if (!targetCard || targetCard === dragState.draggingEl) {
+        const cards = Array.from(cardsContainer.querySelectorAll('.card'))
+            .filter((card) => card !== dragState.draggingEl);
+        if (cards.length === 0) return;
+        let inserted = false;
+        for (const card of cards) {
+            const rect = card.getBoundingClientRect();
+            const mid = rect.top + rect.height / 2;
+            if (clientY < mid) {
+                cardsContainer.insertBefore(dragState.draggingEl, card);
+                inserted = true;
+                break;
+            }
+        }
+        if (!inserted) {
+            cardsContainer.appendChild(dragState.draggingEl);
+        }
+        return;
+    }
 
     const rect = targetCard.getBoundingClientRect();
     const shouldInsertAfter = (clientY - rect.top) > rect.height / 2;
@@ -546,6 +564,7 @@ function stopAutoScroll() {
 
 function setDragZoom(clientX, clientY) {
     if (!cardsContainer) return;
+    if (!shouldEnableDragZoom()) return;
     const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
     const xPercent = Math.max(0, Math.min(100, (clientX / viewportWidth) * 100));
@@ -560,6 +579,15 @@ function clearDragZoom() {
     cardsContainer.classList.remove('drag-zoom');
     cardsContainer.style.removeProperty('--drag-origin-x');
     cardsContainer.style.removeProperty('--drag-origin-y');
+}
+
+function shouldEnableDragZoom() {
+    if (!cardsContainer) return false;
+    const styles = window.getComputedStyle(cardsContainer);
+    const columns = styles.gridTemplateColumns;
+    if (!columns) return false;
+    const count = columns.split(' ').filter(Boolean).length;
+    return count <= 1;
 }
 
 function cancelDrag() {

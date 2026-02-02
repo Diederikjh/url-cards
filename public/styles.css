@@ -487,7 +487,7 @@ header h1 {
 }
 
 .cards-container.drag-zoom {
-    transform: scale(0.75);
+    transform: scale(0.68);
     transform-origin: var(--drag-origin-x, 50%) var(--drag-origin-y, 20%);
     transition: transform 0.18s ease;
     will-change: transform;
