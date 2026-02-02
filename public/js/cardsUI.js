@@ -50,7 +50,8 @@ let dragState = {
 };
 const POINTER_DRAG_DELAY_MS = 140;
 const POINTER_DRAG_THRESHOLD_PX = 12;
-const AUTO_SCROLL_MARGIN_PX = 90;
+const AUTO_SCROLL_MARGIN_TOP_PX = 140;
+const AUTO_SCROLL_MARGIN_BOTTOM_PX = 90;
 const AUTO_SCROLL_MAX_SPEED = 14;
 const AUTO_SCROLL_STEP_DIVISOR = 6;
 
@@ -494,15 +495,15 @@ function updateAutoScroll(clientY) {
     if (!dragState.draggingEl) return;
     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
     let velocity = 0;
-    if (clientY < AUTO_SCROLL_MARGIN_PX) {
+    if (clientY < AUTO_SCROLL_MARGIN_TOP_PX) {
         velocity = -Math.min(
             AUTO_SCROLL_MAX_SPEED,
-            Math.ceil((AUTO_SCROLL_MARGIN_PX - clientY) / AUTO_SCROLL_STEP_DIVISOR)
+            Math.ceil((AUTO_SCROLL_MARGIN_TOP_PX - clientY) / AUTO_SCROLL_STEP_DIVISOR)
         );
-    } else if (clientY > viewportHeight - AUTO_SCROLL_MARGIN_PX) {
+    } else if (clientY > viewportHeight - AUTO_SCROLL_MARGIN_BOTTOM_PX) {
         velocity = Math.min(
             AUTO_SCROLL_MAX_SPEED,
-            Math.ceil((clientY - (viewportHeight - AUTO_SCROLL_MARGIN_PX)) / AUTO_SCROLL_STEP_DIVISOR)
+            Math.ceil((clientY - (viewportHeight - AUTO_SCROLL_MARGIN_BOTTOM_PX)) / AUTO_SCROLL_STEP_DIVISOR)
         );
     }
 
