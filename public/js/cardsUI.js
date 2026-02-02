@@ -262,6 +262,7 @@ function handleDragStart(event) {
     dragState.isPointerDrag = false;
     dragState.draggingEl.classList.add('dragging');
     cardsContainer.classList.add('drag-active');
+    setDragZoom(event.clientX, event.clientY);
 
     dragState.handleKeyDown = (e) => {
         if (e.key === 'Escape') {
@@ -280,6 +281,7 @@ function handleDragEnd(event) {
     if (!dragState.draggingEl) return;
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
+    clearDragZoom();
     stopAutoScroll();
     if (dragState.handleKeyDown) {
         document.removeEventListener('keydown', dragState.handleKeyDown);
@@ -387,6 +389,9 @@ function beginPointerDrag(target) {
     dragState.isPointerDrag = true;
     dragState.draggingEl.classList.add('dragging');
     cardsContainer.classList.add('drag-active');
+    if (dragState.lastPointer) {
+        setDragZoom(dragState.lastPointer.x, dragState.lastPointer.y);
+    }
 }
 
 function handlePointerMove(event) {
@@ -461,6 +466,7 @@ function finishPointerDrag() {
     if (!dragState.draggingEl) return;
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
+    clearDragZoom();
     stopAutoScroll();
 
     const endOrder = getCurrentOrderIds();
@@ -538,12 +544,31 @@ function stopAutoScroll() {
     }
 }
 
+function setDragZoom(clientX, clientY) {
+    if (!cardsContainer) return;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 1;
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
+    const xPercent = Math.max(0, Math.min(100, (clientX / viewportWidth) * 100));
+    const yPercent = Math.max(0, Math.min(100, (clientY / viewportHeight) * 100));
+    cardsContainer.style.setProperty('--drag-origin-x', `${xPercent}%`);
+    cardsContainer.style.setProperty('--drag-origin-y', `${yPercent}%`);
+    cardsContainer.classList.add('drag-zoom');
+}
+
+function clearDragZoom() {
+    if (!cardsContainer) return;
+    cardsContainer.classList.remove('drag-zoom');
+    cardsContainer.style.removeProperty('--drag-origin-x');
+    cardsContainer.style.removeProperty('--drag-origin-y');
+}
+
 function cancelDrag() {
     if (!dragState.draggingEl) return;
     dragState.didCancel = true;
     restoreOrder(dragState.startOrder);
     dragState.draggingEl.classList.remove('dragging');
     cardsContainer.classList.remove('drag-active');
+    clearDragZoom();
     stopAutoScroll();
     if (dragState.handleKeyDown) {
         document.removeEventListener('keydown', dragState.handleKeyDown);

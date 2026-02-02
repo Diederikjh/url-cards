@@ -486,6 +486,13 @@ header h1 {
     touch-action: none;
 }
 
+.cards-container.drag-zoom {
+    transform: scale(0.75);
+    transform-origin: var(--drag-origin-x, 50%) var(--drag-origin-y, 20%);
+    transition: transform 0.18s ease;
+    will-change: transform;
+}
+
 .card.dragging {
     opacity: 0.6;
     transform: scale(0.98);
