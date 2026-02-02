@@ -567,6 +567,7 @@ header h1 {
     cursor: grab;
     position: relative;
     padding: 0;
+    touch-action: none;
 }
 
 .card-drag-handle::before {

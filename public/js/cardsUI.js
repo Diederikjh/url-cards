@@ -350,6 +350,9 @@ function handlePointerDown(event) {
     if (editingCardId) {
         window.cancelCard(editingCardId);
     }
+    if (event.pointerType !== 'mouse') {
+        event.preventDefault();
+    }
 
     dragState.pointerId = event.pointerId;
     dragState.pointerStartX = event.clientX;
