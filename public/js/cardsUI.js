@@ -39,11 +39,17 @@ let dragState = {
     didCancel: false,
     pointerId: null,
     pointerCaptureTarget: null,
+    pendingPointerTimer: null,
+    pendingPointerTarget: null,
+    pointerStartX: 0,
+    pointerStartY: 0,
     lastPointer: null,
     isPointerDrag: false,
     autoScrollRaf: null,
     autoScrollVelocity: 0
 };
+const POINTER_DRAG_DELAY_MS = 140;
+const POINTER_DRAG_THRESHOLD_PX = 12;
 const AUTO_SCROLL_MARGIN_PX = 90;
 const AUTO_SCROLL_MAX_SPEED = 14;
 const AUTO_SCROLL_STEP_DIVISOR = 6;
@@ -338,7 +344,7 @@ function handleContainerDrop(event) {
 function handlePointerDown(event) {
     if (isReadOnly) return;
     // Handle-initiated drag across pointer types.
-    if (!event.currentTarget.hasAttribute('data-drag-handle') && isInteractiveTarget(event.target)) return;
+    if (!event.currentTarget.hasAttribute('data-drag-handle')) return;
     const card = event.currentTarget.closest('.card');
     if (!card || card.dataset.dragDisabled === 'true') return;
     if (editingCardId) {
@@ -346,18 +352,31 @@ function handlePointerDown(event) {
     }
 
     dragState.pointerId = event.pointerId;
+    dragState.pointerStartX = event.clientX;
+    dragState.pointerStartY = event.clientY;
     dragState.lastPointer = { x: event.clientX, y: event.clientY };
     dragState.pointerCaptureTarget = event.currentTarget;
     if (dragState.pointerCaptureTarget.setPointerCapture) {
         dragState.pointerCaptureTarget.setPointerCapture(event.pointerId);
     }
-    beginPointerDrag(card);
+
+    if (event.pointerType === 'mouse') {
+        beginPointerDrag(card);
+    } else {
+        dragState.pendingPointerTarget = card;
+        dragState.pendingPointerTimer = window.setTimeout(() => {
+            if (!dragState.pendingPointerTarget) return;
+            beginPointerDrag(dragState.pendingPointerTarget);
+        }, POINTER_DRAG_DELAY_MS);
+    }
     document.addEventListener('pointermove', handlePointerMove, { passive: false });
     document.addEventListener('pointerup', handlePointerUp, { passive: true });
     document.addEventListener('pointercancel', handlePointerCancel, { passive: true });
 }
 
 function beginPointerDrag(target) {
+    dragState.pendingPointerTimer = null;
+    dragState.pendingPointerTarget = null;
     dragState.draggingEl = target;
     dragState.startOrder = getCurrentOrderIds();
     dragState.didCancel = false;
@@ -370,6 +389,16 @@ function handlePointerMove(event) {
     if (event.pointerId !== dragState.pointerId) return;
     dragState.lastPointer = { x: event.clientX, y: event.clientY };
 
+    if (dragState.pendingPointerTimer) {
+        const dx = event.clientX - dragState.pointerStartX;
+        const dy = event.clientY - dragState.pointerStartY;
+        if (Math.hypot(dx, dy) > POINTER_DRAG_THRESHOLD_PX) {
+            clearPendingPointerDrag();
+            clearPointerListeners();
+        }
+        return;
+    }
+
     if (!dragState.isPointerDrag || !dragState.draggingEl) return;
     event.preventDefault();
     performReorderFromPoint(event.clientX, event.clientY);
@@ -378,6 +407,11 @@ function handlePointerMove(event) {
 
 function handlePointerUp(event) {
     if (event.pointerId !== dragState.pointerId) return;
+    if (dragState.pendingPointerTimer) {
+        clearPendingPointerDrag();
+        clearPointerListeners();
+        return;
+    }
     if (dragState.isPointerDrag) {
         finishPointerDrag();
     }
@@ -386,10 +420,25 @@ function handlePointerUp(event) {
 
 function handlePointerCancel(event) {
     if (event.pointerId !== dragState.pointerId) return;
+    if (dragState.pendingPointerTimer) {
+        clearPendingPointerDrag();
+        clearPointerListeners();
+        return;
+    }
     if (dragState.isPointerDrag) {
         cancelDrag();
     }
     clearPointerListeners();
+}
+
+function clearPendingPointerDrag() {
+    if (dragState.pendingPointerTimer) {
+        clearTimeout(dragState.pendingPointerTimer);
+    }
+    dragState.pendingPointerTimer = null;
+    dragState.pendingPointerTarget = null;
+    dragState.pointerStartX = 0;
+    dragState.pointerStartY = 0;
 }
 
 function clearPointerListeners() {
@@ -401,6 +450,7 @@ function clearPointerListeners() {
     }
     dragState.pointerId = null;
     dragState.pointerCaptureTarget = null;
+    clearPendingPointerDrag();
 }
 
 function finishPointerDrag() {
