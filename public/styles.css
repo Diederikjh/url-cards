@@ -758,32 +758,104 @@ header h1 {
     box-shadow: 0 0 0 4px rgba(52,152,219,0.12);
 }
 
-/* Public Link Container */
-#publicLinkContainer {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 20px;
-    margin-top: -10px;
+/* Public Share Panel */
+.public-share-panel {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
 }
 
-.public-link {
-    display: flex;
+.public-share-toggle {
+    border: none;
+    background: #eef2f7;
+    color: #2c3e50;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
     align-items: center;
     gap: 10px;
-    flex-wrap: wrap;
 }
 
-.public-link label {
+.public-share-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.public-share-globe {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.public-share-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #e2e8f0;
+}
+
+.public-share-chevron svg {
+    display: block;
+    transition: transform 0.15s ease;
+}
+
+.public-share-toggle[aria-expanded="false"] .public-share-chevron svg {
+    transform: rotate(0deg);
+}
+
+.public-share-toggle[aria-expanded="true"] .public-share-chevron svg {
+    transform: rotate(180deg);
+}
+
+.public-share-body {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 260px;
+    max-width: 320px;
+    background: white;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.public-share-panel.is-collapsed .public-share-body,
+.public-share-panel.is-private .public-share-body {
+    display: none;
+}
+
+.public-share-link {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.public-share-link label {
     font-weight: 600;
     color: #2c3e50;
     white-space: nowrap;
 }
 
+.public-share-link-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
 .public-link-input {
     flex: 1;
-    min-width: 200px;
+    min-width: 180px;
     padding: 8px 12px;
     border: 1px solid #ccc;
     border-radius: 4px;
@@ -810,28 +882,20 @@ header h1 {
     background-color: #2980b9;
 }
 
-.share-public-btn {
-    padding: 8px 16px;
-    background-color: #f39c12;
+.public-remove-btn {
+    padding: 8px 14px;
+    background-color: #e74c3c;
     color: white;
     border: none;
-    border-radius: 4px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 0.9rem;
     font-weight: 600;
     transition: background-color 0.2s;
 }
 
-.share-public-btn:hover {
-    background-color: #e67e22;
-}
-
-.share-public-btn.public-active {
-    background-color: #27ae60;
-}
-
-.share-public-btn.public-active:hover {
-    background-color: #229954;
+.public-remove-btn:hover {
+    background-color: #c0392b;
 }
 
 /* Tags management view */

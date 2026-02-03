@@ -15,8 +15,14 @@ let createBoardBtn;
 let backToBoards;
 let renameBoardBtn;
 let deleteBoardBtn;
-let sharePublicBtn;
-let publicLinkContainer;
+let publicSharePanel;
+let publicShareToggleBtn;
+let publicShareToggleText;
+let publicShareInput;
+let copyPublicLinkBtn;
+let removePublicBtn;
+let isPublicPanelOpen = false;
+let handlePublicPanelClickAway = null;
 
 let boardsUnsubscribe = null;
 
@@ -33,14 +39,35 @@ export function initBoardsUI(service) {
     backToBoards = document.getElementById('backToBoards');
     renameBoardBtn = document.getElementById('renameBoardBtn');
     deleteBoardBtn = document.getElementById('deleteBoardBtn');
-    sharePublicBtn = document.getElementById('sharePublicBtn');
-    publicLinkContainer = document.getElementById('publicLinkContainer');
+    publicSharePanel = document.getElementById('publicSharePanel');
+    publicShareToggleBtn = document.getElementById('publicShareToggleBtn');
+    publicShareToggleText = document.getElementById('publicShareToggleText');
+    publicShareInput = document.getElementById('publicShareInput');
+    copyPublicLinkBtn = document.getElementById('copyPublicLinkBtn');
+    removePublicBtn = document.getElementById('removePublicBtn');
 
     createBoardBtn.addEventListener('click', handleCreateBoard);
     backToBoards.addEventListener('click', () => navigateToBoards());
     renameBoardBtn.addEventListener('click', handleRenameBoard);
     deleteBoardBtn.addEventListener('click', handleDeleteBoard);
-    sharePublicBtn.addEventListener('click', handleTogglePublic);
+    if (publicShareToggleBtn) {
+        publicShareToggleBtn.addEventListener('click', handlePublicShareToggle);
+    }
+    if (copyPublicLinkBtn) {
+        copyPublicLinkBtn.addEventListener('click', handleCopyPublicLink);
+    }
+    if (removePublicBtn) {
+        removePublicBtn.addEventListener('click', handleRemovePublic);
+    }
+    if (!handlePublicPanelClickAway) {
+        handlePublicPanelClickAway = (event) => {
+            if (!isPublicPanelOpen || !publicSharePanel) return;
+            if (publicSharePanel.contains(event.target)) return;
+            setPublicPanelOpen(false);
+        };
+        document.addEventListener('click', handlePublicPanelClickAway);
+    }
+    setPublicPanelOpen(false);
 }
 
 export async function ensureDefaultBoard() {
@@ -143,6 +170,7 @@ export async function loadBoard(boardId) {
         currentBoardData = board;
         boardName.textContent = board.name;
         updatePublicLinkUI(board);
+        setPublicPanelOpen(false);
     } catch (error) {
         console.error('Error loading board:', error);
         alert('Failed to load board');
@@ -199,50 +227,66 @@ async function handleDeleteBoard() {
     }
 }
 
-async function handleTogglePublic() {
+function handlePublicShareToggle() {
     if (!currentBoardId || !currentBoardData || !boardService) return;
+    const isPublic = Boolean(currentBoardData.isPublic && currentBoardData.publicShareId);
+    if (!isPublic) {
+        handleMakePublic();
+        return;
+    }
+    setPublicPanelOpen(!isPublicPanelOpen);
+}
 
+async function handleMakePublic() {
+    if (!currentBoardId || !boardService) return;
     try {
-        if (currentBoardData.isPublic) {
-            // Remove public access
-            if (!confirm('Are you sure you want to make this board private? The public link will no longer work.')) {
-                return;
-            }
-            await boardService.togglePublic(currentBoardId, false);
-            currentBoardData.isPublic = false;
-            delete currentBoardData.publicShareId;
-        } else {
-            // Make public
-            await boardService.togglePublic(currentBoardId, true);
-            // Fetch updated board to get the publicShareId
-            const currentUser = getCurrentUser();
-            currentBoardData = await boardService.getBoard(currentBoardId, currentUser.uid);
-        }
+        await boardService.togglePublic(currentBoardId, true);
+        const currentUser = getCurrentUser();
+        currentBoardData = await boardService.getBoard(currentBoardId, currentUser.uid);
         updatePublicLinkUI(currentBoardData);
+        setPublicPanelOpen(true);
     } catch (error) {
-        console.error('Error toggling public access:', error);
+        console.error('Error making board public:', error);
+        alert('Failed to update board access. Please try again.');
+    }
+}
+
+async function handleRemovePublic() {
+    if (!currentBoardId || !currentBoardData || !boardService) return;
+    try {
+        if (!confirm('Are you sure you want to make this board private? The public link will no longer work.')) {
+            return;
+        }
+        await boardService.togglePublic(currentBoardId, false);
+        currentBoardData.isPublic = false;
+        delete currentBoardData.publicShareId;
+        updatePublicLinkUI(currentBoardData);
+        setPublicPanelOpen(false);
+    } catch (error) {
+        console.error('Error removing public access:', error);
         alert('Failed to update board access. Please try again.');
     }
 }
 
 function updatePublicLinkUI(board) {
-    if (board.isPublic && board.publicShareId) {
-        const publicUrl = `${window.location.origin}${window.location.pathname}#public/${board.publicShareId}`;
-        sharePublicBtn.textContent = 'Remove Public Access';
-        sharePublicBtn.classList.add('public-active');
-        publicLinkContainer.style.display = 'block';
-        publicLinkContainer.innerHTML = `
-            <div class="public-link">
-                <label>Public Link:</label>
-                <input type="text" value="${publicUrl}" readonly class="public-link-input" />
-                <button onclick="window.copyPublicLink('${publicUrl}')" class="copy-link-btn">Copy Link</button>
-            </div>
-        `;
-    } else {
-        sharePublicBtn.textContent = 'Make Public';
-        sharePublicBtn.classList.remove('public-active');
-        publicLinkContainer.style.display = 'none';
-        publicLinkContainer.innerHTML = '';
+    const isPublic = Boolean(board?.isPublic && board.publicShareId);
+    if (publicSharePanel) {
+        publicSharePanel.classList.toggle('is-public', isPublic);
+        publicSharePanel.classList.toggle('is-private', !isPublic);
+    }
+    if (publicShareToggleText) {
+        publicShareToggleText.textContent = isPublic ? 'Public link' : 'Make public';
+    }
+    if (publicShareInput) {
+        if (isPublic) {
+            const publicUrl = `${window.location.origin}${window.location.pathname}#public/${board.publicShareId}`;
+            publicShareInput.value = publicUrl;
+        } else {
+            publicShareInput.value = '';
+        }
+    }
+    if (!isPublic) {
+        setPublicPanelOpen(false);
     }
 }
 
@@ -256,3 +300,18 @@ export function copyPublicLink(url) {
 }
 
 window.copyPublicLink = copyPublicLink;
+
+function handleCopyPublicLink() {
+    if (!publicShareInput?.value) return;
+    copyPublicLink(publicShareInput.value);
+}
+
+function setPublicPanelOpen(isOpen) {
+    isPublicPanelOpen = Boolean(isOpen);
+    if (publicSharePanel) {
+        publicSharePanel.classList.toggle('is-collapsed', !isPublicPanelOpen);
+    }
+    if (publicShareToggleBtn) {
+        publicShareToggleBtn.setAttribute('aria-expanded', String(isPublicPanelOpen));
+    }
+}
