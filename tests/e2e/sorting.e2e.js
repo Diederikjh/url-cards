@@ -42,10 +42,12 @@ test.describe('Card Sorting', () => {
 
         await page.waitForSelector('.card', { state: 'visible' });
 
-        await page.selectOption('#sortSelect', 'name_asc');
+        await page.click('#sortPanelToggleBtn');
+        await page.click('[data-sort="name_asc"]');
         await expect(page.locator('#sortSelect')).toHaveValue('name_asc');
 
-        await page.selectOption('#sortSelect', 'created_desc');
+        await page.click('#sortPanelToggleBtn');
+        await page.click('[data-sort="created_desc"]');
         await expect(page.locator('#sortSelect')).toHaveValue('created_desc');
     });
 });

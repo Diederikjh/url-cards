@@ -18,6 +18,9 @@ let isReadOnly = false;
 let urlInput;
 let addCardBtn;
 let sortSelect;
+let sortPanel;
+let sortPanelToggleBtn;
+let sortOptionButtons = [];
 let cardsContainer;
 let currentCards = []; // Store cards for sorting logic
 let tagFilterPanel;
@@ -32,6 +35,8 @@ let tagsUnsubscribe = null;
 let selectedTagFilterId = null;
 let isFilterPanelOpen = false;
 let handleFilterClickAway = null;
+let isSortPanelOpen = false;
+let handleSortPanelClickAway = null;
 let dragState = {
     draggingEl: null,
     startOrder: [],
@@ -75,6 +80,9 @@ export function initCardsUI(service, tagSvc) {
     urlInput = document.getElementById('urlInput');
     addCardBtn = document.getElementById('addCardBtn');
     sortSelect = document.getElementById('sortSelect');
+    sortPanel = document.getElementById('sortPanel');
+    sortPanelToggleBtn = document.getElementById('sortPanelToggleBtn');
+    sortOptionButtons = Array.from(document.querySelectorAll('.sort-option-btn'));
     cardsContainer = document.getElementById('cardsContainer');
     tagFilterPanel = document.getElementById('tagFilterPanel');
     tagFilterList = document.getElementById('tagFilterList');
@@ -92,6 +100,30 @@ export function initCardsUI(service, tagSvc) {
 
     if (sortSelect) {
         sortSelect.addEventListener('change', handleSort);
+    }
+
+    if (sortPanelToggleBtn) {
+        sortPanelToggleBtn.addEventListener('click', () => setSortPanelOpen(!isSortPanelOpen));
+    }
+
+    if (sortOptionButtons.length > 0) {
+        sortOptionButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                if (button.disabled) return;
+                const sortType = button.dataset.sort;
+                if (!sortType) return;
+                setSortType(sortType, { runSort: true, closePanel: true });
+            });
+        });
+    }
+
+    if (!handleSortPanelClickAway) {
+        handleSortPanelClickAway = (event) => {
+            if (!isSortPanelOpen || !sortPanel) return;
+            if (sortPanel.contains(event.target)) return;
+            setSortPanelOpen(false);
+        };
+        document.addEventListener('click', handleSortPanelClickAway);
     }
 
     if (cardsContainer) {
@@ -120,6 +152,10 @@ export function initCardsUI(service, tagSvc) {
     }
 
     setFilterPanelOpen(false);
+    setSortPanelOpen(false);
+    if (sortSelect?.value) {
+        updateSortButtonsActive(sortSelect.value);
+    }
 
     if (tagsUnsubscribe) {
         tagsUnsubscribe();
@@ -130,6 +166,16 @@ export function initCardsUI(service, tagSvc) {
         refreshAllCardTags();
         updateTagFilterOptions(currentCards);
     });
+}
+
+function setSortPanelOpen(isOpen) {
+    isSortPanelOpen = Boolean(isOpen);
+    if (sortPanel) {
+        sortPanel.classList.toggle('is-collapsed', !isSortPanelOpen);
+    }
+    if (sortPanelToggleBtn) {
+        sortPanelToggleBtn.setAttribute('aria-expanded', String(isSortPanelOpen));
+    }
 }
 
 export function loadCards(boardId) {
@@ -161,11 +207,12 @@ async function handleSort() {
     if (!currentCards || currentCards.length === 0 || !cardService) return;
 
     const sortType = sortSelect.value;
+    updateSortButtonsActive(sortType);
     if (sortType === 'custom') return;
     const sortedCards = [...currentCards];
 
     // Disable select while sorting
-    sortSelect.disabled = true;
+    setSortControlsDisabled(true);
 
     try {
         // Sort in memory first
@@ -176,7 +223,7 @@ async function handleSort() {
         console.error('Error sorting cards:', error);
         alert('Failed to update sort order.');
     } finally {
-        sortSelect.disabled = false;
+        setSortControlsDisabled(false);
     }
 }
 
@@ -647,6 +694,7 @@ async function persistOrderFromDom() {
     if (sortSelect) {
         sortSelect.value = 'custom';
     }
+    updateSortButtonsActive('custom');
 
     try {
         await applyRankUpdates(buildRankUpdatesForOrder(orderedIds));
@@ -687,6 +735,39 @@ function isValidUrl(string) {
         return true;
     } catch (_) {
         return false;
+    }
+}
+
+function setSortType(sortType, { runSort = false, closePanel = false } = {}) {
+    if (sortSelect) {
+        sortSelect.value = sortType;
+    }
+    updateSortButtonsActive(sortType);
+    if (runSort) {
+        handleSort();
+    }
+    if (closePanel) {
+        setSortPanelOpen(false);
+    }
+}
+
+function updateSortButtonsActive(sortType) {
+    if (!sortOptionButtons || sortOptionButtons.length === 0) return;
+    sortOptionButtons.forEach((button) => {
+        const isActive = button.dataset.sort === sortType;
+        button.classList.toggle('is-active', isActive);
+        button.setAttribute('aria-selected', String(isActive));
+    });
+}
+
+function setSortControlsDisabled(disabled) {
+    if (sortSelect) {
+        sortSelect.disabled = disabled;
+    }
+    if (sortOptionButtons && sortOptionButtons.length > 0) {
+        sortOptionButtons.forEach((button) => {
+            button.disabled = disabled;
+        });
     }
 }
 

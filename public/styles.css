@@ -269,6 +269,146 @@ header h1 {
     flex-wrap: wrap;
 }
 
+.sr-only {
+    position: absolute !important;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.sort-panel {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.sort-panel-toggle {
+    border: none;
+    background: #f0f3f6;
+    color: #2c3e50;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.sort-panel-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sort-panel-chevron {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #e2e8f0;
+}
+
+.sort-panel-chevron svg {
+    display: block;
+    transition: transform 0.15s ease;
+}
+
+.sort-panel-toggle[aria-expanded="false"] .sort-panel-chevron svg {
+    transform: rotate(0deg);
+}
+
+.sort-panel-toggle[aria-expanded="true"] .sort-panel-chevron svg {
+    transform: rotate(180deg);
+}
+
+.sort-panel-body {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 200px;
+    max-width: 240px;
+    background: white;
+    border-radius: 12px;
+    padding: 12px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.sort-panel-header {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.sort-panel-options {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sort-option-btn {
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #2c3e50;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+}
+
+.sort-option-btn:hover {
+    background: #eef2f7;
+    transform: translateY(-1px);
+}
+
+.sort-option-btn.is-active {
+    border-color: #2c3e50;
+    background: #e2e8f0;
+}
+
+.sort-option-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.sort-panel.is-collapsed .sort-panel-body {
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
+}
+
+.sort-panel-body label {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.sort-panel-select {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    font-size: 0.9rem;
+    background: white;
+    color: #2c3e50;
+}
+
 .tag-filter-panel {
     position: relative;
     display: inline-flex;

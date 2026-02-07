@@ -114,17 +114,36 @@
             <div id="addCardSection" class="add-card-section">
                 <input type="url" id="urlInput" placeholder="Enter URL..." />
                 <button id="addCardBtn">Add Card</button>
-                <div class="sort-controls"
-                    style="margin-left: 20px; display: inline-flex; align-items: center; gap: 8px;">
-                    <label for="sortSelect">Sort by:</label>
-                    <select id="sortSelect" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
-                        <option value="custom">Custom</option>
-                        <option value="created_desc" selected>Newest First</option>
-                        <option value="created_asc">Oldest First</option>
-                        <option value="name_asc">Name (A-Z)</option>
-                        <option value="name_desc">Name (Z-A)</option>
-                    </select>
-                </div>
+                <aside id="sortPanel" class="sort-panel is-collapsed" aria-label="Sort cards">
+                    <button id="sortPanelToggleBtn" class="sort-panel-toggle" type="button" aria-expanded="false">
+                        <span class="sort-panel-toggle-label">
+                            <span class="sort-panel-chevron" aria-hidden="true">
+                                <svg viewBox="0 0 16 16" width="14" height="14" focusable="false" aria-hidden="true">
+                                    <path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+                                </svg>
+                            </span>
+                            Sort cards
+                        </span>
+                    </button>
+                    <div class="sort-panel-body">
+                        <div class="sort-panel-header">Sort by</div>
+                        <div class="sort-panel-options" role="listbox" aria-label="Sort options">
+                            <button class="sort-option-btn is-active" type="button" data-sort="created_desc" role="option" aria-selected="true">Newest First</button>
+                            <button class="sort-option-btn" type="button" data-sort="created_asc" role="option" aria-selected="false">Oldest First</button>
+                            <button class="sort-option-btn" type="button" data-sort="name_asc" role="option" aria-selected="false">Name (A-Z)</button>
+                            <button class="sort-option-btn" type="button" data-sort="name_desc" role="option" aria-selected="false">Name (Z-A)</button>
+                            <button class="sort-option-btn" type="button" data-sort="custom" role="option" aria-selected="false">Custom</button>
+                        </div>
+                        <label class="sr-only" for="sortSelect">Sort by</label>
+                        <select id="sortSelect" class="sort-panel-select sr-only" tabindex="-1">
+                            <option value="custom">Custom</option>
+                            <option value="created_desc" selected>Newest First</option>
+                            <option value="created_asc">Oldest First</option>
+                            <option value="name_asc">Name (A-Z)</option>
+                            <option value="name_desc">Name (Z-A)</option>
+                        </select>
+                    </div>
+                </aside>
                 <aside id="tagFilterPanel" class="tag-filter-panel" aria-label="Tag filter">
                     <button id="tagFilterToggleBtn" class="tag-filter-toggle" type="button" aria-expanded="false">
                         <span class="tag-filter-toggle-label">
