@@ -115,14 +115,19 @@
                 <input type="url" id="urlInput" placeholder="Enter URL..." />
                 <button id="addCardBtn">Add Card</button>
                 <aside id="sortPanel" class="sort-panel is-collapsed" aria-label="Sort cards">
-                    <button id="sortPanelToggleBtn" class="sort-panel-toggle" type="button" aria-expanded="false">
-                        <span class="sort-panel-toggle-label">
+                    <button id="sortPanelToggleBtn" class="sort-panel-toggle" type="button" aria-expanded="false" aria-label="Sort cards">
+                        <span class="sort-panel-toggle-label" aria-hidden="true">
                             <span class="sort-panel-chevron" aria-hidden="true">
                                 <svg viewBox="0 0 16 16" width="14" height="14" focusable="false" aria-hidden="true">
                                     <path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
                                 </svg>
                             </span>
-                            Sort cards
+                            <span class="sort-panel-icon" aria-hidden="true">
+                                <svg viewBox="0 0 20 20" width="16" height="16" focusable="false" aria-hidden="true">
+                                    <path d="M6 4h10M6 10h7M6 16h4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="translate(2 0)"/>
+                                    <path d="M4 4v12M4 4l-3 3M4 4l3 3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </span>
                         </span>
                     </button>
                     <div class="sort-panel-body">

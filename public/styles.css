@@ -307,6 +307,12 @@ header h1 {
     gap: 8px;
 }
 
+.sort-panel-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .sort-panel-chevron {
     display: inline-flex;
     align-items: center;
