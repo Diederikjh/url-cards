@@ -205,6 +205,21 @@ To enable automatic deployments on push to main:
 4. **Deploy**: `firebase deploy`
 5. **Auto-deploy**: Push to main branch (GitHub Actions)
 
+## Testing Strategy (Unit vs UI/E2E Balance)
+
+This project uses a deliberate testing pyramid to keep feedback fast and reliable while still covering real user flows.
+
+**Unit tests (Jest)** are the default choice for:
+- Pure logic in `public/js/rules/*` (sorting, validation, tag suggestions/usage, filtering).
+- Edge cases and input validation that are easier to express as small, deterministic tests.
+
+**UI/E2E tests (Playwright)** are reserved for:
+- Critical user journeys (board creation, renaming, deletion, card flows).
+- Integration points where DOM + Firebase + routing interactions matter.
+- A small set of smoke tests that ensure the app works end-to-end.
+
+**Rule of thumb:** prefer unit tests for correctness and breadth, and keep UI/E2E tests focused on user-critical flows to avoid flakiness and slow test runs. See `TESTING.md` and `E2E_TESTING.md` for details.
+
 ## Cost Expectations
 
 **Firebase Free Tier (Spark Plan)**:

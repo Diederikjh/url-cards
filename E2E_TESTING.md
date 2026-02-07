@@ -12,45 +12,17 @@ A complete headless browser E2E testing setup using **Playwright** for the URL C
 ✅ **Great Debugging** - Screenshots, videos, and Inspector mode on failures
 ✅ **Simple API** - Easy to write and maintain tests
 
-## Files Created
+## How E2E Fits with Unit Tests
 
-### Configuration
-- `playwright.config.js` - Main Playwright configuration
-  - Single worker mode (no parallelization) for reliability
-  - Screenshots and videos on failure
-  - Automatic browser launching
-  - HTML report generation
+E2E tests are intentionally **narrow and high-value** in this project:
+- **Unit tests (Jest)** cover pure logic and edge cases quickly.
+- **E2E tests (Playwright)** verify a small set of real user journeys across DOM + Firebase + routing.
 
-### Test Files
-- `tests/e2e/boards.e2e.js` - 9 E2E test cases covering:
-  - App initialization
-  - Board creation
-  - Board renaming
-  - Board deletion
-  - Multiple board management
-  - Card addition
-  - Complex operation sequences
-  - Rapid operations
-  - Navigation state persistence
+**Rule of thumb:** keep most coverage in unit tests, and reserve E2E tests for the flows that are most critical to user experience.
 
-### Test Utilities
-- `tests/e2e/test-utils.js` - Helper functions providing:
-  - `mockAuth()` - Mock Firebase authentication
-  - `waitForElement()` - Reliable element waiting
-  - `createBoard()`, `renameBoard()`, `deleteBoard()`
-  - `addCard()`, `editCardTitle()`, `deleteCard()`
+## Where to Look
 
-### Setup/Teardown
-- `tests/e2e/global-setup.js` - Initialize Firebase Emulator
-- `tests/e2e/README.md` - Complete testing documentation
-
-### CI/CD
-- `.github/workflows/e2e-tests.yml` - Automated workflow
-  - Runs on push to main/develop and PRs
-  - Starts Firebase Emulator
-  - Runs tests in headless mode
-  - Uploads test reports and videos
-  - Comments on PR with results
+E2E tests and helpers live under `tests/e2e/`, and the Playwright configuration is in `playwright.config.js`. Check those paths directly for the latest test coverage and utilities.
 
 ## How to Run
 
