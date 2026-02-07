@@ -2,13 +2,10 @@
 
 ## Running Tests
 
-Tests require Firebase emulators to be running:
+Unit tests do not require Firebase emulators, but emulator-backed tests do.
 
 ```bash
-# Terminal 1: Start emulators
-firebase emulators:start
-
-# Terminal 2: Run tests
+# Run unit tests
 npm test
 
 # Or with coverage
@@ -17,25 +14,34 @@ npm run test:coverage
 
 ## What's Tested
 
-- **Boards**: Create, read, update, delete operations
-- **Cards**: Create, read, update, delete operations
-- **Data relationships**: Board-card associations and cascading deletes
+- **Unit rules** (Jest): sorting, tag validation, tag suggestions, tag usage, and tag filtering logic from `public/js/rules/*`.
+- **UI/E2E** (Playwright): core board/card flows and multi-step interactions (see `E2E_TESTING.md`).
 
-## Test Files
+## Test Locations
 
-- `tests/setup.js` - Firebase emulator configuration
-- `tests/boards.test.js` - Board CRUD operations (12 tests)
-- `tests/cards.test.js` - Card CRUD operations (15 tests)
+Unit tests live under `tests/`, and E2E tests live under `tests/e2e/`. Refer to those paths in the repo for the most current coverage details.
 
 ## Important: Code Changes Require Test Review
 
-Since these tests focus primarily on Firebase functionality, **whenever code changes are made, LLMs must review the test files to ensure they still cover the expected behavior and no fixes are needed.**
+Since these tests focus on shared logic and critical user workflows, **whenever code changes are made, LLMs must review the test files to ensure they still cover the expected behavior and no fixes are needed.**
+
+## Choosing the Right Test Type (Balance Guidance)
+
+- **Prefer unit tests** for deterministic logic and edge cases:
+  - Tag normalization/validation rules.
+  - Sorting and ranking logic.
+  - Tag suggestion/filter/usage calculations.
+- **Use UI/E2E tests** sparingly for:
+  - User-critical flows across the DOM, Firebase, and routing layers.
+  - Integration points where failures would be obvious to users.
+
+**Goal:** keep most coverage in unit tests for speed and clarity, and keep UI/E2E tests focused on a small set of end-to-end scenarios to avoid flakiness and long CI runs.
 
 ## Notes
 
-- Tests run serially (`maxWorkers: 1`) to avoid database conflicts
-- Uses `--forceExit` due to Firebase Admin SDK keeping GRPC connections alive
-- Database is cleared between each test for isolation
+- Jest tests run serially (`maxWorkers: 1`) to avoid shared resource conflicts.
+- Uses `--forceExit` due to Firebase Admin SDK keeping GRPC connections alive.
+- If emulator-backed tests are added, the database is cleared between each test for isolation.
 
 ## CI/CD
 
