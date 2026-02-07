@@ -442,6 +442,12 @@ header h1 {
     gap: 8px;
 }
 
+.tag-filter-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .tag-filter-chevron {
     display: inline-flex;
     align-items: center;
